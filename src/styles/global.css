@@ -1,0 +1,537 @@
+@import "tailwindcss";
+
+@theme {
+  /* Typography — system fonts */
+  --font-display: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, monospace;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Neon palette */
+  --color-void: #050510;
+  --color-deep: #0a0a1a;
+  --color-surface: #0f0f2a;
+  --color-panel: #14143a;
+  --color-border-dim: #1a1a4a;
+  --color-border: #2a2a5a;
+
+  --color-cyan: #00e5ff;
+  --color-cyan-dim: #00a5b8;
+  --color-magenta: #ff2d7b;
+  --color-magenta-dim: #c0205a;
+  --color-lime: #39ff14;
+  --color-lime-dim: #2ab80f;
+
+  --color-text: #c8c8e0;
+  --color-text-dim: #7878a0;
+  --color-text-muted: #4a4a70;
+}
+
+/* ── Base ── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-void);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── CRT Scanline overlay ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 3px
+  );
+}
+
+/* ── Noise/grain overlay ── */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: var(--color-magenta);
+  color: white;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-void); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-cyan-dim); }
+
+/* Hide scrollbar on horizontal scroll containers */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Chromatic aberration text effect ── */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.glitch::before {
+  color: var(--color-cyan);
+  left: -2px;
+  top: -1px;
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  clip-path: inset(0 0 0 0);
+  animation: glitch-cyan 4s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+  color: var(--color-magenta);
+  left: 2px;
+  top: 1px;
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  clip-path: inset(0 0 0 0);
+  animation: glitch-magenta 4s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-cyan {
+  0%, 90% { transform: translate(0); }
+  92% { transform: translate(-2px, 1px); }
+  94% { transform: translate(1px, -1px); }
+  96% { transform: translate(-1px, 0); }
+  98% { transform: translate(2px, 1px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes glitch-magenta {
+  0%, 88% { transform: translate(0); }
+  90% { transform: translate(2px, -1px); }
+  93% { transform: translate(-1px, 1px); }
+  95% { transform: translate(1px, 0); }
+  97% { transform: translate(-2px, -1px); }
+  100% { transform: translate(0); }
+}
+
+/* ── Neon glow utility classes ── */
+.neon-cyan {
+  color: var(--color-cyan);
+  text-shadow:
+    0 0 7px var(--color-cyan),
+    0 0 20px rgba(0, 229, 255, 0.3);
+}
+
+.neon-magenta {
+  color: var(--color-magenta);
+  text-shadow:
+    0 0 7px var(--color-magenta),
+    0 0 20px rgba(255, 45, 123, 0.3);
+}
+
+.neon-lime {
+  color: var(--color-lime);
+  text-shadow:
+    0 0 7px var(--color-lime),
+    0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+/* ── Neon border glow on hover ── */
+.neon-border {
+  border: 1px solid var(--color-border-dim);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.neon-border:hover {
+  border-color: var(--color-cyan);
+  box-shadow:
+    0 0 8px rgba(0, 229, 255, 0.15),
+    inset 0 0 8px rgba(0, 229, 255, 0.05);
+}
+
+/* ── Scroll reveal animation ── */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal { animation: reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.reveal-delay-1 { animation-delay: 0.1s; }
+.reveal-delay-2 { animation-delay: 0.2s; }
+.reveal-delay-3 { animation-delay: 0.3s; }
+.reveal-delay-4 { animation-delay: 0.4s; }
+.reveal-delay-5 { animation-delay: 0.5s; }
+
+/* ── VHS flicker on page load ── */
+@keyframes vhs-flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 1; }
+  10% { opacity: 0.98; }
+  15% { opacity: 1; }
+  50% { opacity: 1; }
+  51% { opacity: 0.95; }
+  52% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+body {
+  animation: vhs-flicker 3s ease-in-out;
+}
+
+/* ── Code blocks ── */
+pre {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border-dim);
+  border-radius: 4px;
+  padding: 1.5rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+:not(pre) > code {
+  background-color: var(--color-surface);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  border: 1px solid var(--color-border-dim);
+  color: var(--color-cyan);
+}
+
+/* ── Terminal-style command blocks ── */
+.terminal {
+  font-family: var(--font-mono);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-dim);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  user-select: all;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.terminal:hover {
+  border-color: var(--color-cyan-dim);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.1);
+}
+
+.terminal .prompt {
+  color: var(--color-lime);
+}
+
+/* ── Prose styles for blog ── */
+.prose {
+  max-width: 65ch;
+  line-height: 1.8;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  margin-top: 2.5em;
+  margin-bottom: 0.75em;
+  color: var(--color-cyan);
+}
+
+.prose h1 { font-size: 2rem; }
+.prose h2 {
+  font-size: 1.5rem;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+}
+.prose h3 { font-size: 1.25rem; }
+
+.prose p {
+  margin-bottom: 1.25em;
+  color: var(--color-text);
+}
+
+.prose strong {
+  color: var(--color-cyan);
+  font-weight: 600;
+}
+
+.prose a {
+  color: var(--color-magenta);
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 45, 123, 0.4);
+  transition: all 0.2s;
+}
+
+.prose a:hover {
+  color: var(--color-magenta);
+  text-decoration-color: var(--color-magenta);
+  text-shadow: 0 0 8px rgba(255, 45, 123, 0.3);
+}
+
+.prose ul, .prose ol {
+  margin-bottom: 1.25em;
+  padding-left: 1.5em;
+  color: var(--color-text);
+}
+
+.prose li {
+  margin-bottom: 0.5em;
+}
+
+.prose li::marker {
+  color: var(--color-magenta);
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--color-magenta);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: var(--color-text-dim);
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--color-border-dim);
+  margin: 2em 0;
+}
+
+.prose img {
+  border-radius: 4px;
+  margin: 2em 0;
+  border: 1px solid var(--color-border-dim);
+}
+
+/* ── Ambient glow background for hero ── */
+.ambient-glow {
+  position: relative;
+}
+
+.ambient-glow::before {
+  content: "";
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 229, 255, 0.06) 0%,
+    rgba(255, 45, 123, 0.03) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ── Floating stone words ── */
+.stone-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.stone-word {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 0.15em 0.35em;
+  border-radius: 999px;
+  /* Knockout text — see through the letters to the background */
+  color: var(--color-void);
+  background: white;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Mix blend to punch through */
+  mix-blend-mode: screen;
+  /* Dual sine-wave bob */
+  animation: stone-bob var(--bob-dur, 5s) ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s);
+}
+
+/* White pill shape behind each word — fluid organic blob */
+.stone-word::before {
+  content: "";
+  position: absolute;
+  inset: -4px -14px;
+  background: white;
+  z-index: -1;
+  border-radius: var(--br-1, 60%) var(--br-2, 40%) var(--br-3, 50%) var(--br-4, 45%) / var(--br-5, 50%) var(--br-6, 55%) var(--br-7, 45%) var(--br-8, 50%);
+  animation: blob-morph var(--blob-dur, 8s) ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s);
+}
+
+/* The text sits on top */
+.stone-word {
+  isolation: isolate;
+  color: black;
+  -webkit-text-fill-color: black;
+  background: none;
+  background-clip: unset;
+  -webkit-background-clip: unset;
+  mix-blend-mode: normal;
+}
+
+/* Shared fluid blob shape for channel offsets */
+.stone-word .ch-cyan,
+.stone-word .ch-magenta,
+.stone-word .ch-lime {
+  position: absolute;
+  inset: -4px -14px;
+  animation-delay: var(--bob-delay, 0s);
+}
+
+/* Cyan channel */
+.stone-word .ch-cyan {
+  background: var(--color-cyan);
+  opacity: 0.7;
+  z-index: -2;
+  mix-blend-mode: screen;
+  border-radius: var(--br-1, 60%) var(--br-2, 40%) var(--br-3, 50%) var(--br-4, 45%) / var(--br-5, 50%) var(--br-6, 55%) var(--br-7, 45%) var(--br-8, 50%);
+  animation:
+    blob-morph var(--blob-dur, 8s) ease-in-out infinite,
+    ch-shift-cyan var(--ch-dur, 6s) ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s), var(--bob-delay, 0s);
+}
+
+/* Magenta channel */
+.stone-word .ch-magenta {
+  background: var(--color-magenta);
+  opacity: 0.6;
+  z-index: -3;
+  mix-blend-mode: screen;
+  border-radius: var(--br-1, 60%) var(--br-2, 40%) var(--br-3, 50%) var(--br-4, 45%) / var(--br-5, 50%) var(--br-6, 55%) var(--br-7, 45%) var(--br-8, 50%);
+  animation:
+    blob-morph-alt var(--blob-dur, 8s) ease-in-out infinite,
+    ch-shift-magenta var(--ch-dur, 6s) ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s), var(--bob-delay, 0s);
+}
+
+/* Lime channel */
+.stone-word .ch-lime {
+  background: var(--color-lime);
+  opacity: 0.35;
+  z-index: -4;
+  mix-blend-mode: screen;
+  border-radius: var(--br-1, 60%) var(--br-2, 40%) var(--br-3, 50%) var(--br-4, 45%) / var(--br-5, 50%) var(--br-6, 55%) var(--br-7, 45%) var(--br-8, 50%);
+  animation:
+    blob-morph var(--blob-dur, 8s) ease-in-out infinite,
+    ch-shift-lime var(--ch-dur, 6s) ease-in-out infinite;
+  animation-delay: calc(var(--bob-delay, 0s) + 1s), var(--bob-delay, 0s);
+}
+
+/* Organic blob morph — continuously shifting border-radius */
+@keyframes blob-morph {
+  0%   { border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%; }
+  25%  { border-radius: 45% 55% 40% 60% / 55% 45% 60% 40%; }
+  50%  { border-radius: 50% 45% 60% 40% / 45% 60% 40% 55%; }
+  75%  { border-radius: 40% 60% 45% 55% / 60% 40% 55% 45%; }
+  100% { border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%; }
+}
+
+/* Alternate blob morph — slightly different shape cycle for channel offsets */
+@keyframes blob-morph-alt {
+  0%   { border-radius: 55% 45% 50% 50% / 45% 55% 50% 50%; }
+  25%  { border-radius: 50% 50% 45% 55% / 60% 40% 55% 45%; }
+  50%  { border-radius: 45% 55% 55% 45% / 50% 50% 45% 55%; }
+  75%  { border-radius: 55% 45% 45% 55% / 45% 55% 55% 45%; }
+  100% { border-radius: 55% 45% 50% 50% / 45% 55% 50% 50%; }
+}
+
+/* Dual sine-wave floating motion */
+@keyframes stone-bob {
+  0%   { transform: translateY(0px) translateX(0px); }
+  25%  { transform: translateY(-6px) translateX(2px); }
+  50%  { transform: translateY(-2px) translateX(-1px); }
+  75%  { transform: translateY(-8px) translateX(1px); }
+  100% { transform: translateY(0px) translateX(0px); }
+}
+
+/* Channel separation animations — each shifts differently */
+@keyframes ch-shift-cyan {
+  0%   { transform: translate(-3px, -2px); }
+  33%  { transform: translate(-5px, -4px); }
+  66%  { transform: translate(-2px, -3px); }
+  100% { transform: translate(-3px, -2px); }
+}
+
+@keyframes ch-shift-magenta {
+  0%   { transform: translate(3px, 2px); }
+  33%  { transform: translate(5px, 3px); }
+  66%  { transform: translate(2px, 4px); }
+  100% { transform: translate(3px, 2px); }
+}
+
+@keyframes ch-shift-lime {
+  0%   { transform: translate(0px, 4px); }
+  33%  { transform: translate(-2px, 5px); }
+  66%  { transform: translate(2px, 3px); }
+  100% { transform: translate(0px, 4px); }
+}
+
+/* ── Star field background ── */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 229, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(255, 45, 123, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(57, 255, 20, 0.01) 0%, transparent 50%),
+    var(--color-void);
+}
+
+/* ── Hero scene ── */
+.hero-scene {
+  background: linear-gradient(
+    to bottom,
+    var(--color-void) 0%,
+    #06050e 60%,
+    #0e0c18 100%
+  );
+}

@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="About — Ryan Schumacher" description="About Ryan Schumacher — platform engineering leader, Go developer, and open source contributor based in Birmingham, AL.">
+  <section class="max-w-3xl mx-auto px-6 pt-20 pb-20">
+    <div class="reveal">
+      <p class="font-mono text-sm mb-3 neon-lime">// about</p>
+    </div>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold lowercase tracking-wide mb-12 reveal reveal-delay-1" style="color: var(--color-cyan); text-shadow: 0 0 20px rgba(0,229,255,0.2);">
+      about me
+    </h1>
+
+    <div class="space-y-8 reveal reveal-delay-2">
+      <p class="text-lg leading-relaxed" style="color: var(--color-text);">
+        I'm a platform-focused engineering leader based in Birmingham, Alabama. I build tools that make developers more productive and systems that scale gracefully. I care deeply about developer experience, thoughtful architecture, and software that stays out of your way.
+      </p>
+
+      <p class="text-lg leading-relaxed" style="color: var(--color-text);">
+        Currently, I'm at <strong class="neon-cyan">Virtru</strong>, where I work on
+        <a href="https://github.com/opentdf/platform" target="_blank" rel="noopener noreferrer" class="neon-magenta" style="text-decoration: underline; text-decoration-style: wavy; text-underline-offset: 4px; text-decoration-color: rgba(255,45,123,0.4);">OpenTDF</a>
+        &mdash; persistent data-centric security that extends owner control wherever data travels. I lead the
+        <code class="font-mono text-sm px-1.5 py-0.5 rounded" style="background-color: var(--color-surface); border: 1px solid var(--color-border-dim); color: var(--color-cyan);">otdfctl</code>
+        project, our command-line interface for the platform.
+      </p>
+    </div>
+
+    <!-- Divider -->
+    <div class="my-12" style="border-top: 1px solid var(--color-border-dim);"></div>
+
+    <!-- Details grid -->
+    <div class="grid gap-10 sm:grid-cols-2 reveal reveal-delay-3">
+      <div>
+        <h2 class="font-mono text-sm uppercase tracking-widest mb-4 neon-cyan">
+          background
+        </h2>
+        <ul class="space-y-3" style="color: var(--color-text);">
+          <li class="flex items-start gap-3">
+            <span class="font-mono text-xs mt-1.5 shrink-0 neon-magenta">03&ndash;07</span>
+            <span>Auburn University &mdash; Software Engineering</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="font-mono text-xs mt-1.5 shrink-0 neon-magenta">now</span>
+            <span>Birmingham, Alabama</span>
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="font-mono text-sm uppercase tracking-widest mb-4 neon-cyan">
+          specialties
+        </h2>
+        <div class="flex flex-wrap gap-2">
+          {['Go', 'Platform Engineering', 'CLI Tools', 'Full-Stack', 'UX', 'AWS', 'React', 'TypeScript', 'Architecture'].map((skill) => (
+            <span
+              class="font-mono text-xs px-3 py-1.5 rounded transition-all duration-200"
+              style="background-color: var(--color-surface); color: var(--color-text-dim); border: 1px solid var(--color-border-dim);"
+              onmouseover="this.style.borderColor='var(--color-cyan)'; this.style.color='var(--color-cyan)'; this.style.boxShadow='0 0 8px rgba(0,229,255,0.15)'"
+              onmouseout="this.style.borderColor='var(--color-border-dim)'; this.style.color='var(--color-text-dim)'; this.style.boxShadow='none'"
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 class="font-mono text-sm uppercase tracking-widest mb-4 neon-cyan">
+          community
+        </h2>
+        <ul class="space-y-3" style="color: var(--color-text);">
+          <li>
+            CS Teacher at <strong class="neon-magenta">Red Mountain Community School</strong> &mdash; teaching logic gates, sorting algorithms, and ethical computing
+          </li>
+          <li>
+            Co-founder of <strong class="neon-magenta">Micah's House</strong> community
+          </li>
+          <li>
+            Member of BASE (Birmingham Alabama Software Enthusiasts)
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="font-mono text-sm uppercase tracking-widest mb-4 neon-cyan">
+          open source
+        </h2>
+        <ul class="space-y-4" style="color: var(--color-text);">
+          <li>
+            <a
+              href="https://github.com/opentdf/platform"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-mono text-sm neon-magenta transition-all duration-200"
+              style="text-decoration: none;"
+              onmouseover="this.style.textShadow='0 0 12px rgba(255,45,123,0.5)'"
+              onmouseout="this.style.textShadow='0 0 7px var(--color-magenta), 0 0 20px rgba(255,45,123,0.3)'"
+            >
+              opentdf/platform
+            </a>
+            <p class="text-sm mt-1" style="color: var(--color-text-muted);">
+              Persistent data-centric security
+            </p>
+          </li>
+          <li>
+            <a
+              href="https://github.com/jrschumacher/go-spaserve"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-mono text-sm neon-lime transition-all duration-200"
+              style="text-decoration: none;"
+              onmouseover="this.style.textShadow='0 0 12px rgba(57,255,20,0.5)'"
+              onmouseout="this.style.textShadow='0 0 7px var(--color-lime), 0 0 20px rgba(57,255,20,0.3)'"
+            >
+              go-spaserve
+            </a>
+            <p class="text-sm mt-1" style="color: var(--color-text-muted);">
+              Single-page application server utility
+            </p>
+          </li>
+          <li>
+            <a
+              href="https://github.com/jrschumacher/go-mod-what"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="font-mono text-sm neon-cyan transition-all duration-200"
+              style="text-decoration: none;"
+              onmouseover="this.style.textShadow='0 0 12px rgba(0,229,255,0.5)'"
+              onmouseout="this.style.textShadow='0 0 7px var(--color-cyan), 0 0 20px rgba(0,229,255,0.3)'"
+            >
+              go-mod-what
+            </a>
+            <p class="text-sm mt-1" style="color: var(--color-text-muted);">
+              Go module analysis tool
+            </p>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

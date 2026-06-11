@@ -1,0 +1,23 @@
+# build output
+dist/
+
+# dependencies
+node_modules/
+
+# astro
+.astro/
+
+# environment variables
+.env
+.env.*
+
+# editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# conductor
+.context/

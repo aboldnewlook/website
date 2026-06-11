@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<BaseLayout title="Blog — Ryan Schumacher" description="Thoughts on engineering, tools, and building things.">
+  <section class="max-w-3xl mx-auto px-6 pt-20 pb-20">
+    <div class="reveal">
+      <p class="font-mono text-sm mb-3 neon-lime">// blog</p>
+    </div>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold lowercase tracking-wide mb-4 reveal reveal-delay-1" style="color: var(--color-cyan); text-shadow: 0 0 20px rgba(0,229,255,0.2);">
+      writing
+    </h1>
+    <p class="text-lg mb-12 reveal reveal-delay-2" style="color: var(--color-text-dim);">
+      Thoughts on engineering, tools, and building things.
+    </p>
+
+    {posts.length === 0 ? (
+      <div class="neon-border rounded-md p-12 text-center reveal reveal-delay-3" style="background-color: var(--color-deep);">
+        <p class="font-mono text-sm" style="color: var(--color-text-muted);">
+          // no posts yet. check back soon.
+        </p>
+      </div>
+    ) : (
+      <div class="space-y-3 reveal reveal-delay-3">
+        {posts.map((post) => (
+          <a
+            href={`/blog/${post.id}`}
+            class="block group neon-border rounded-md p-6 transition-all duration-200"
+            style="background-color: var(--color-deep);"
+          >
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <h2 class="font-display text-base font-semibold lowercase tracking-wide" style="color: var(--color-text); transition: color 0.2s, text-shadow 0.2s;"
+                  onmouseover="this.style.color='var(--color-cyan)'; this.style.textShadow='0 0 10px rgba(0,229,255,0.3)'"
+                  onmouseout="this.style.color='var(--color-text)'; this.style.textShadow='none'"
+              >
+                {post.data.title}
+              </h2>
+              <time class="font-mono text-xs shrink-0 neon-magenta">
+                {post.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              </time>
+            </div>
+            {post.data.description && (
+              <p class="mt-2 text-sm" style="color: var(--color-text-dim);">
+                {post.data.description}
+              </p>
+            )}
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+</BaseLayout>

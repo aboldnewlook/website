@@ -1,0 +1,35 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-auto py-10 px-6" style="border-top: 1px solid var(--color-border-dim);">
+  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <p class="font-mono text-xs" style="color: var(--color-text-muted);">
+      &copy; {year} ryan schumacher
+    </p>
+    <div class="flex items-center gap-6">
+      <a
+        href="https://github.com/jrschumacher"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-mono text-xs lowercase transition-all duration-200"
+        style="color: var(--color-text-muted);"
+        onmouseover="this.style.color='var(--color-cyan)'; this.style.textShadow='0 0 8px rgba(0,229,255,0.4)'"
+        onmouseout="this.style.color='var(--color-text-muted)'; this.style.textShadow='none'"
+      >
+        github
+      </a>
+      <a
+        href="https://www.linkedin.com/in/jrschumacher/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-mono text-xs lowercase transition-all duration-200"
+        style="color: var(--color-text-muted);"
+        onmouseover="this.style.color='var(--color-magenta)'; this.style.textShadow='0 0 8px rgba(255,45,123,0.4)'"
+        onmouseout="this.style.color='var(--color-text-muted)'; this.style.textShadow='none'"
+      >
+        linkedin
+      </a>
+    </div>
+  </div>
+</footer>

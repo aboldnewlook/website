@@ -1,0 +1,244 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AppCard from '../components/AppCard.astro';
+
+const apps = [
+  {
+    name: 'Cadence',
+    description: 'Conversational Jira interface',
+    brew: 'brew install jrschumacher/tap/cadence',
+    version: '0.3.0',
+  },
+  {
+    name: 'Prune',
+    description: 'Personal task and work-log tool built around capture, chronology, and forgetting',
+    brew: 'brew install jrschumacher/tap/prune',
+    version: '1.0.0-rc.3',
+  },
+  {
+    name: 'Scribe',
+    description: 'Audio transcription app powered by Deepgram',
+    brew: 'brew install jrschumacher/tap/scribe',
+    version: '1.1.1',
+  },
+];
+---
+
+<BaseLayout title="Ryan Schumacher — A Bold New Look" hideHeader={true}>
+  <!-- Hero - Fixed full viewport farm scene -->
+  <section class="hero-scene fixed inset-0 w-full h-screen overflow-hidden flex items-center">
+    <!-- Twinkling stars canvas -->
+    <canvas id="stars-canvas" class="absolute inset-0 w-full h-full" aria-hidden="true"></canvas>
+
+    <!-- Ambient sky glow -->
+    <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="
+      background:
+        radial-gradient(ellipse at 30% 30%, rgba(0, 229, 255, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 20%, rgba(255, 45, 123, 0.03) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 60%, rgba(57, 255, 20, 0.015) 0%, transparent 40%);
+    "></div>
+
+    <!-- Content layer -->
+    <div class="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-10 flex flex-col lg:flex-row lg:items-center lg:gap-12 pt-24 pb-56 sm:pb-64 lg:pb-72">
+      <!-- Stacked stone words - left side -->
+      <div class="stone-stack py-6 lg:py-10 reveal shrink-0" aria-label="a bold new look">
+        <span class="stone-word text-4xl sm:text-5xl lg:text-6xl" style="--bob-dur: 4.5s; --bob-delay: 0s; --ch-dur: 5.5s; --blob-dur: 7s;">
+          a
+          <span class="ch-cyan" aria-hidden="true"></span>
+          <span class="ch-magenta" aria-hidden="true"></span>
+          <span class="ch-lime" aria-hidden="true"></span>
+        </span>
+        <span class="stone-word text-5xl sm:text-6xl lg:text-7xl" style="--bob-dur: 5.2s; --bob-delay: 0.4s; --ch-dur: 6.2s; --blob-dur: 9s;">
+          bold
+          <span class="ch-cyan" aria-hidden="true"></span>
+          <span class="ch-magenta" aria-hidden="true"></span>
+          <span class="ch-lime" aria-hidden="true"></span>
+        </span>
+        <span class="stone-word text-5xl sm:text-6xl lg:text-7xl" style="--bob-dur: 4.8s; --bob-delay: 0.8s; --ch-dur: 5.8s; --blob-dur: 8s;">
+          new
+          <span class="ch-cyan" aria-hidden="true"></span>
+          <span class="ch-magenta" aria-hidden="true"></span>
+          <span class="ch-lime" aria-hidden="true"></span>
+        </span>
+        <span class="stone-word text-5xl sm:text-7xl lg:text-8xl" style="--bob-dur: 5.5s; --bob-delay: 1.2s; --ch-dur: 6.5s; --blob-dur: 10s;">
+          look
+          <span class="ch-cyan" aria-hidden="true"></span>
+          <span class="ch-magenta" aria-hidden="true"></span>
+          <span class="ch-lime" aria-hidden="true"></span>
+        </span>
+      </div>
+
+      <!-- Right side - about me -->
+      <div class="flex-1 lg:pl-4">
+        <p class="font-mono text-sm mb-5 neon-lime reveal reveal-delay-1">// ryan schumacher</p>
+
+        <p class="font-body text-xl sm:text-2xl max-w-xl leading-relaxed mb-8 reveal reveal-delay-2" style="color: var(--color-text);">
+          platform-focused engineering leader.<br class="hidden sm:block" />
+          curious full-stack engineer and architect.
+        </p>
+
+        <p class="font-body text-base sm:text-lg max-w-lg leading-relaxed mb-10 reveal reveal-delay-3" style="color: var(--color-text-dim);">
+          Building tools that make work feel lighter. Currently shaping open data protection at Virtru. Teaching kids to think in logic gates. Writing Go, shipping macOS apps, and tending to side projects after dark.
+        </p>
+
+        <div class="flex items-center gap-5 reveal reveal-delay-4">
+          <a
+            href="https://github.com/jrschumacher"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="neon-border inline-flex items-center gap-2 font-mono text-sm lowercase px-5 py-2.5 rounded-md transition-all duration-200"
+            style="background-color: rgba(5,5,16,0.7); color: var(--color-text); backdrop-filter: blur(8px);"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            github
+          </a>
+          <a
+            href="https://www.linkedin.com/in/jrschumacher/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="neon-border inline-flex items-center gap-2 font-mono text-sm lowercase px-5 py-2.5 rounded-md transition-all duration-200"
+            style="background-color: rgba(5,5,16,0.7); color: var(--color-text); backdrop-filter: blur(8px);"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            linkedin
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Farm photo - bottom of viewport -->
+    <div class="absolute bottom-0 left-0 right-0 z-[5] pointer-events-none">
+      <!-- Top fade: blends photo into the dark sky -->
+      <div class="absolute top-0 left-0 right-0 h-1/2 z-10" style="
+        background: linear-gradient(to bottom, var(--color-void) 0%, transparent 100%);
+      "></div>
+      <!-- Photo -->
+      <img
+        src="/farm-night.png"
+        alt=""
+        class="w-full h-[280px] sm:h-[340px] lg:h-[420px] object-cover object-bottom"
+        style="mask-image: linear-gradient(to bottom, transparent 0%, black 40%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%);"
+      />
+    </div>
+  </section>
+
+  <!-- Twinkling stars script -->
+  <script>
+    const canvas = document.getElementById('stars-canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const ctx = canvas.getContext('2d')!;
+      let stars: { x: number; y: number; r: number; phase: number; speed: number; brightness: number }[] = [];
+      let animationId: number;
+
+      function resize() {
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        initStars();
+      }
+
+      function initStars() {
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        const count = Math.floor((w * h) / 3000);
+        stars = [];
+        for (let i = 0; i < count; i++) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h * 0.75, // stars mostly in upper 75%
+            r: Math.random() * 1.5 + 0.3,
+            phase: Math.random() * Math.PI * 2,
+            speed: Math.random() * 0.8 + 0.3,
+            brightness: Math.random() * 0.5 + 0.5,
+          });
+        }
+      }
+
+      function draw(t: number) {
+        const w = canvas.offsetWidth;
+        const h = canvas.offsetHeight;
+        ctx.clearRect(0, 0, w, h);
+
+        for (const star of stars) {
+          const twinkle = Math.sin(t * 0.001 * star.speed + star.phase);
+          const alpha = star.brightness * (0.5 + 0.5 * twinkle);
+          if (alpha <= 0.05) continue;
+
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(220, 220, 240, ${alpha})`;
+          ctx.fill();
+
+          // Subtle glow on brighter stars
+          if (star.r > 1 && alpha > 0.6) {
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.r * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200, 210, 240, ${alpha * 0.1})`;
+            ctx.fill();
+          }
+        }
+
+        animationId = requestAnimationFrame(draw);
+      }
+
+      resize();
+      animationId = requestAnimationFrame(draw);
+      window.addEventListener('resize', () => {
+        cancelAnimationFrame(animationId);
+        resize();
+        animationId = requestAnimationFrame(draw);
+      });
+    }
+  </script>
+
+  <!-- Spacer to push scrollable content below the fixed hero -->
+  <div class="h-screen"></div>
+
+  <!-- Scrollable content - rises up from behind the farm -->
+  <div class="relative z-20" style="background: var(--color-void);">
+    <!-- Subtle top edge glow -->
+    <div class="h-px w-full" style="background: linear-gradient(to right, transparent, var(--color-cyan-dim), var(--color-magenta-dim), transparent);"></div>
+
+    <!-- Nav links inline -->
+    <nav class="max-w-5xl mx-auto px-6 pt-8 pb-4 flex items-center gap-6 font-mono text-sm lowercase">
+      <a href="/apps" class="transition-all duration-200" style="color: var(--color-text-dim);" onmouseenter="this.style.color='var(--color-cyan)';this.style.textShadow='0 0 8px rgba(0,229,255,0.4)'" onmouseleave="this.style.color='var(--color-text-dim)';this.style.textShadow='none'">apps</a>
+      <a href="/blog" class="transition-all duration-200" style="color: var(--color-text-dim);" onmouseenter="this.style.color='var(--color-cyan)';this.style.textShadow='0 0 8px rgba(0,229,255,0.4)'" onmouseleave="this.style.color='var(--color-text-dim)';this.style.textShadow='none'">blog</a>
+      <a href="/about" class="transition-all duration-200" style="color: var(--color-text-dim);" onmouseenter="this.style.color='var(--color-cyan)';this.style.textShadow='0 0 8px rgba(0,229,255,0.4)'" onmouseleave="this.style.color='var(--color-text-dim)';this.style.textShadow='none'">about</a>
+    </nav>
+
+    <!-- Apps section — scrolls on the right like a card -->
+    <section class="max-w-5xl mx-auto px-6 py-16">
+      <div class="flex flex-col lg:flex-row lg:gap-12">
+        <!-- Left: section header -->
+        <div class="shrink-0 lg:w-48 mb-8 lg:mb-0 lg:pt-2">
+          <p class="font-mono text-sm mb-3 neon-lime">// apps</p>
+          <h2 class="font-display text-2xl sm:text-3xl font-bold lowercase tracking-wide">
+            <span style="color: var(--color-cyan); text-shadow: 0 0 15px rgba(0,229,255,0.2);">things i've built</span>
+          </h2>
+          <a
+            href="/apps"
+            class="inline-flex items-center gap-2 font-mono text-xs lowercase mt-4 transition-all duration-200 neon-magenta"
+          >
+            view all
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+
+        <!-- Right: vertically scrollable card container -->
+        <div class="flex-1 neon-border rounded-lg overflow-hidden" style="background-color: var(--color-deep); max-height: 420px;">
+          <div class="overflow-y-auto h-full p-5 space-y-4 scrollbar-hide">
+            {apps.map((app, i) => (
+              <AppCard {...app} delay={i + 1} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
