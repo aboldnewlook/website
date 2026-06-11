@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const apps = [
+  {
+    name: 'Cadence',
+    tagline: 'Conversational Jira interface',
+    description: 'Interact with Jira through a conversational interface. Create, update, and manage issues without leaving your flow.',
+    brew: 'brew install jrschumacher/tap/cadence',
+    version: '0.3.0',
+    downloadUrl: 'https://github.com/jrschumacher/homebrew-tap/releases/download/cadence-v0.3.0/cadence-0.3.0-darwin-arm64.zip',
+    arch: 'macOS ARM64',
+    color: 'cyan',
+  },
+  {
+    name: 'Prune',
+    tagline: 'Capture, chronology, and forgetting',
+    description: 'A personal task and work-log tool built around the idea that not everything needs to be remembered. Capture what matters, let the rest fall away.',
+    brew: 'brew install jrschumacher/tap/prune',
+    version: '1.0.0-rc.3',
+    downloadUrl: 'https://github.com/jrschumacher/homebrew-tap/releases/download/v1.0.0-rc.3/Prune_App_macOS_universal.zip',
+    arch: 'macOS Universal',
+    color: 'magenta',
+  },
+  {
+    name: 'Scribe',
+    tagline: 'Audio transcription powered by Deepgram',
+    description: 'Record and transcribe audio with high accuracy using Deepgram\'s speech-to-text engine. Simple, fast, and local-first.',
+    brew: 'brew install jrschumacher/tap/scribe',
+    version: '1.1.1',
+    downloadUrl: 'https://github.com/jrschumacher/homebrew-tap/releases/download/scribe-v1.1.1/scribe-1.1.1-darwin-arm64.zip',
+    arch: 'macOS ARM64',
+    color: 'lime',
+  },
+];
+
+const colorMap = {
+  cyan: { class: 'neon-cyan', bg: 'rgba(0, 229, 255, 0.08)', border: 'var(--color-cyan)', bgHover: 'var(--color-cyan)' },
+  magenta: { class: 'neon-magenta', bg: 'rgba(255, 45, 123, 0.08)', border: 'var(--color-magenta)', bgHover: 'var(--color-magenta)' },
+  lime: { class: 'neon-lime', bg: 'rgba(57, 255, 20, 0.08)', border: 'var(--color-lime)', bgHover: 'var(--color-lime)' },
+};
+---
+
+<BaseLayout title="Apps — Ryan Schumacher" description="macOS apps by Ryan Schumacher. Available via Homebrew or direct download.">
+  <section class="max-w-5xl mx-auto px-6 pt-20 pb-12">
+    <div class="reveal">
+      <p class="font-mono text-sm mb-3 neon-lime">// apps</p>
+    </div>
+    <h1 class="font-display text-4xl sm:text-5xl font-bold lowercase tracking-wide mb-4 reveal reveal-delay-1" style="color: var(--color-cyan); text-shadow: 0 0 20px rgba(0,229,255,0.2);">
+      apps
+    </h1>
+    <p class="text-lg max-w-2xl reveal reveal-delay-2" style="color: var(--color-text-dim);">
+      macOS tools I've built. Install via Homebrew or download directly.
+    </p>
+
+    <!-- Homebrew tap setup -->
+    <div class="mt-8 neon-border rounded-md p-5 reveal reveal-delay-3" style="background-color: var(--color-deep);">
+      <p class="font-mono text-sm mb-3" style="color: var(--color-text-muted);">
+        first, add the tap:
+      </p>
+      <div class="terminal">
+        <span class="prompt">$</span> brew tap jrschumacher/tap
+      </div>
+    </div>
+  </section>
+
+  <!-- App listings -->
+  <section class="max-w-5xl mx-auto px-6 pb-20 space-y-8">
+    {apps.map((app, i) => {
+      const colors = colorMap[app.color as keyof typeof colorMap];
+      return (
+        <div
+          class:list={['neon-border rounded-md p-8 transition-all duration-300', `reveal reveal-delay-${Math.min(i + 2, 5)}`]}
+          style="background-color: var(--color-deep);"
+        >
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+            <div>
+              <h2 class:list={['font-display text-2xl font-bold lowercase tracking-wide', colors.class]}>
+                {app.name}
+              </h2>
+              <p class="font-mono text-sm mt-1" style="color: var(--color-text-dim);">
+                {app.tagline}
+              </p>
+            </div>
+            <span class="font-mono text-xs px-3 py-1.5 rounded shrink-0" style="background-color: var(--color-surface); color: var(--color-text-muted); border: 1px solid var(--color-border-dim);">
+              v{app.version}
+            </span>
+          </div>
+
+          <p class="text-base leading-relaxed mb-6" style="color: var(--color-text-dim);">
+            {app.description}
+          </p>
+
+          <!-- Install options -->
+          <div class="space-y-4">
+            <div>
+              <p class="font-mono text-xs mb-2 uppercase tracking-widest" style="color: var(--color-text-muted);">
+                install via homebrew
+              </p>
+              <div class="terminal">
+                <span class="prompt">$</span> {app.brew}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <a
+                href={app.downloadUrl}
+                class="inline-flex items-center gap-2 font-mono text-sm lowercase px-4 py-2 rounded-md transition-all duration-200"
+                style={`background-color: ${colors.bg}; color: ${colors.border}; border: 1px solid ${colors.border};`}
+                onmouseover={`this.style.backgroundColor='${colors.bgHover}'; this.style.color='var(--color-void)'`}
+                onmouseout={`this.style.backgroundColor='${colors.bg}'; this.style.color='${colors.border}'`}
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                download ({app.arch})
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </section>
+</BaseLayout>

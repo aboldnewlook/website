@@ -1,0 +1,33 @@
+---
+interface Props {
+  name: string;
+  description: string;
+  brew: string;
+  version: string;
+  delay?: number;
+}
+
+const { name, description, brew, version, delay = 0 } = Astro.props;
+---
+
+<div
+  class:list={['neon-border rounded-md p-6 transition-all duration-300', delay ? `reveal reveal-delay-${delay}` : '']}
+  style="background-color: var(--color-deep);"
+>
+  <div class="flex items-start justify-between mb-4">
+    <h3 class="font-display text-lg font-bold lowercase tracking-wide neon-cyan">
+      {name}
+    </h3>
+    <span class="font-mono text-xs px-2 py-1 rounded" style="background-color: var(--color-surface); color: var(--color-text-muted); border: 1px solid var(--color-border-dim);">
+      v{version}
+    </span>
+  </div>
+
+  <p class="text-sm leading-relaxed mb-6" style="color: var(--color-text-dim);">
+    {description}
+  </p>
+
+  <div class="terminal">
+    <span class="prompt">$</span> {brew}
+  </div>
+</div>

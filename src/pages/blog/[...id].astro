@@ -1,0 +1,52 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<BaseLayout title={`${post.data.title} — Ryan Schumacher`} description={post.data.description}>
+  <article class="max-w-3xl mx-auto px-6 pt-20 pb-20">
+    <header class="mb-12 reveal">
+      <a
+        href="/blog"
+        class="inline-flex items-center gap-2 font-mono text-sm lowercase mb-8 transition-all duration-200"
+        style="color: var(--color-text-muted);"
+        onmouseover="this.style.color='var(--color-cyan)'; this.style.textShadow='0 0 8px rgba(0,229,255,0.3)'"
+        onmouseout="this.style.color='var(--color-text-muted)'; this.style.textShadow='none'"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        back to blog
+      </a>
+
+      <time class="block font-mono text-sm mb-4 neon-magenta">
+        {post.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+      </time>
+
+      <h1 class="font-display text-3xl sm:text-4xl font-bold lowercase tracking-wide leading-tight" style="color: var(--color-cyan); text-shadow: 0 0 15px rgba(0,229,255,0.2);">
+        {post.data.title}
+      </h1>
+
+      {post.data.description && (
+        <p class="mt-4 text-lg" style="color: var(--color-text-dim);">
+          {post.data.description}
+        </p>
+      )}
+    </header>
+
+    <div class="prose reveal reveal-delay-1">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
