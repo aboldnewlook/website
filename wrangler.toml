@@ -1,0 +1,23 @@
+name = "website"
+main = "src/worker.js"
+compatibility_date = "2025-04-01"
+
+# Static assets (robots.txt, and anything else that is a file, not a page).
+# Non-asset requests fall through to the router in src/worker.js.
+[assets]
+directory = "./public"
+
+# --- D1: the PUBLIC résumé tables ---
+# Split out of resume-backlog so this Worker has no path to job-hunt data.
+# Contains only: profile, companies, roles, accomplishments, targets.
+[[d1_databases]]
+binding = "RESUME"
+database_name = "resume-public"
+database_id = "e82ee3ed-53a8-4273-b98b-479ac30896fd"
+
+# --- D1: the published blog shelf ---
+# Written by a Cairn publish step; read-only from here.
+[[d1_databases]]
+binding = "BLOG"
+database_name = "personal-blog"
+database_id = "2aec93a1-cc30-4480-b3e7-31611f15f2bf"
