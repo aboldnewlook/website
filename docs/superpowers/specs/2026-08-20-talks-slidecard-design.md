@@ -136,6 +136,27 @@ Steps 2 and 3 must precede step 5. Two reasons, both load-bearing:
   through as a paragraph. Harmless only because the theme block is always
   removed first. §11 pins this with a test.
 
+### 7.1 Authoring traps this parse order creates
+
+Verified against `src/blog/markdown.js` on 2026-08-21, found by baseline
+testing. All three fail silently and none were in the original draft.
+
+- **A bare `---` inside a fenced code block splits the slide.** Step 3 runs on
+  raw text, before any fence is understood. A two-slide file demonstrating
+  YAML frontmatter in a fence parses as four slides.
+- **`----`, `-----`, and ` ---` (leading space) do not split.** `HR` in the
+  renderer matches `{0,3}` leading spaces and runs of 3+ of `-`, `*`, or `_`,
+  while `slideSep` is exactly `/^---$/`. The surplus forms render as an `<hr>`
+  inside the slide instead. `***` is the recommended spelling for an
+  intentional rule, since it cannot be misread as a botched separator.
+- **`# Title` in a slide body renders `<h2>`, not `<h1>`.** The renderer
+  shifts headings down one level ("the page already owns the `<h1>`"), so the
+  deck page must supply an `<h1>` for the outline to be valid. The §6 example
+  does not say this.
+
+The validator in `.claude/skills/writing-slidecard-talks/validate.mjs`
+enforces all three and runs without the framework.
+
 `registry.js` parses **lazily per slug** and memoises in a module-level Map.
 Eager parsing at module scope would let one malformed deck break the whole
 Worker. The index reads frontmatter only.
