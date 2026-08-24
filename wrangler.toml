@@ -7,6 +7,20 @@ compatibility_date = "2025-04-01"
 [assets]
 directory = "./public"
 
+# --- Routes, deliberately not custom domains.
+# The apex already has proxied A/AAAA records pointing at an nginx origin that
+# redirects to ruster.me. A custom domain would require deleting those records;
+# a route intercepts the request ahead of the origin and leaves DNS untouched,
+# so removing these two lines restores the previous behaviour exactly.
+# www redirects to the apex in the Worker.
+[[routes]]
+pattern = "aboldnewlook.com/*"
+zone_name = "aboldnewlook.com"
+
+[[routes]]
+pattern = "www.aboldnewlook.com/*"
+zone_name = "aboldnewlook.com"
+
 # --- D1: the PUBLIC résumé tables ---
 # Split out of resume-backlog so this Worker has no path to job-hunt data.
 # Contains only: profile, companies, roles, accomplishments, targets.
@@ -21,3 +35,20 @@ database_id = "e82ee3ed-53a8-4273-b98b-479ac30896fd"
 binding = "BLOG"
 database_name = "personal-blog"
 database_id = "2aec93a1-cc30-4480-b3e7-31611f15f2bf"
+
+# --- Slidecard decks, bundled as text ---
+# `import src from "../../decks/foo.md"` gives the Worker the file contents as a
+# string, so decks are versioned with the code and need no D1 binding, no KV,
+# and no build step. fallthrough keeps wrangler's own default rules (wasm, txt,
+# html) in place instead of replacing them.
+#
+# The glob is leading-`**` on purpose. Wrangler compiles each glob to a regex
+# and hands it to esbuild as an onLoad filter, which tests it against the
+# ABSOLUTE module path — so a config-relative "decks/**/*.md" is anchored at the
+# filesystem root and silently matches nothing ("No loader is configured for
+# '.md' files" at bundle time). "**/decks/**/*.md" fails too: the second `**`
+# still demands a directory between decks/ and the file.
+[[rules]]
+type = "Text"
+globs = ["**/decks/*.md"]
+fallthrough = true

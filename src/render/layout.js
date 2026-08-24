@@ -10,6 +10,7 @@ const e = escapeHtml;
 const NAV = [
   { href: "/", label: "Résumé", key: "resume" },
   { href: "/blog", label: "Blog", key: "blog" },
+  { href: "/talks", label: "Talks", key: "talks" },
   { href: "/resume.txt", label: "Plain text", key: "text" },
 ];
 
@@ -27,8 +28,9 @@ function nav(current) {
  * @param {string} [opts.description] meta description
  * @param {string} [opts.current]    nav key to mark as current
  * @param {string} opts.body         markup for the <main class="page"> element
+ * @param {string} [opts.head]       extra markup for <head> (stylesheets, font links)
  */
-export function layout({ title, description, current, body }) {
+export function layout({ title, description, current, body, head }) {
   const desc = description
     ? `<meta name="description" content="${e(description)}">`
     : "";
@@ -40,6 +42,7 @@ export function layout({ title, description, current, body }) {
 <title>${e(title)}</title>
 ${desc}
 <style>${SITE_STYLESHEET}</style>
+${head ?? ""}
 </head>
 <body>
 ${nav(current)}
