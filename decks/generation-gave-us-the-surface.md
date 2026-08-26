@@ -62,7 +62,6 @@ O27  [P3]     A patch is a discrete module - patch library, tests, and its own A
 O28  [P3]     Why an agent and not a library - a stop-gap until the right architecture is affordable
 ```
 
-<!-- pos: 0,0 -->
 <!-- kicker: 00 — Opening -->
 <!-- goal: state the thesis in one line: the opinion is the product, and it now ships to models too -->
 # SDKs ship opinions: first to developers, now to their models
@@ -81,7 +80,6 @@ Ryan Schumacher · OpenTDF Architect and Maintainer
 
 -->
 ---
-<!-- pos: 1,0 -->
 <!-- kicker: 01 — Scope -->
 <!-- covers: O1 -->
 <!-- goal: one sentence on what OpenTDF is - policy travels with the data - and move on -->
@@ -128,8 +126,16 @@ An open format where policy and keys travel with the data.
   he'll ask
 
 -->
+
+<!-- REVIEW · KEEP (looks cuttable, is not)
+Thinnest content slide in the deck at 30 words, so it will look like an easy
+cut. It is the only slide that says what OpenTDF actually is, and the
+non-specialist reviewer needed it to follow anything after it. Cutting this
+saves ~20 seconds and costs the whole first act for half the room.
+-->
+
 ---
-<!-- pos: 1,1 -->
+<!-- down -->
 <!-- kicker: 01 — Scope -->
 <!-- covers: O2,O3,O4 -->
 <!-- goal: establish the surface area and the headcount, so the SDK bet reads as forced, not preferred -->
@@ -155,7 +161,6 @@ Something had to give. **What gave was the SDK layer.**
   plainly, no hedging
 -->
 ---
-<!-- pos: 2,0 -->
 <!-- kicker: 02 — What an SDK is -->
 <!-- covers: O5,O6 -->
 <!-- goal: separate typed transport from the opinion, and show why a silent failure makes the opinion load-bearing -->
@@ -180,7 +185,7 @@ Something had to give. **What gave was the SDK layer.**
 
 -->
 ---
-<!-- pos: 2,1 -->
+<!-- down -->
 <!-- kicker: 02 — What an SDK is -->
 <!-- covers: O7 -->
 <!-- goal: show that not shipping an SDK does not avoid the problem, it distributes it -->
@@ -202,7 +207,6 @@ Something had to give. **What gave was the SDK layer.**
 
 -->
 ---
-<!-- pos: 3,0 -->
 <!-- kicker: 03 — Failure evidence -->
 <!-- covers: O18,O19 -->
 <!-- goal: prove with evidence that a prose spec underdetermines behaviour - two independent readings disagreed -->
@@ -220,18 +224,20 @@ careful engineers read the same sentence and built different things.
 
 The permutation matrix — not any single SDK's test suite — **is the real unit
 of correctness.**
----
-<!-- pos: 3,1 -->
-<!-- kicker: 03 — Failure evidence -->
-<!-- covers: O18 -->
-<!-- goal: show the SDK absorbing reality the spec cannot, without corrupting the spec -->
-# Liberal in what it accepts. Strict in what it produces.
 
-- An SDK, unlike a loose collection of libraries, **can absorb reality a spec can't**
-- It can support out-of-spec third-party TDFs already in the wild
-- Workarounds get quarantined in one place **while the spec itself stays clean**
+<!-- notes:
+- liberal in what it accepts, strict in what it produces — say this out loud,
+  it is the line people remember
+- an SDK, unlike a loose collection of libraries, can absorb reality the spec
+  cannot: out-of-spec third-party TDFs are already in the wild and cannot be
+  retroactively fixed
+- the workarounds get quarantined in one place, which is what keeps the spec
+  itself clean
+- the matrix is where all three of these showed up — none were caught by any
+  single SDK's own test suite
+-->
+
 ---
-<!-- pos: 4,0 -->
 <!-- kicker: 04 — Conformance -->
 <!-- covers: O21,O13 -->
 <!-- goal: explain why a CLI is the comparable surface: argv in, bytes out, no idioms to honour -->
@@ -247,7 +253,6 @@ of correctness.**
 
 Java, Go, JavaScript. `otdfctl` is a real product CLI; the others are deliberately minimal shims. One product, two test harnesses sharing a shape.
 ---
-<!-- pos: 4,1 -->
 <!-- kicker: 04 — Conformance -->
 <!-- covers: O19,O20,O22 -->
 <!-- goal: land that divergence between implementations is evidence the spec is underspecified, and that the spec is what changes -->
@@ -269,7 +274,6 @@ It runs on every merge. That is the difference between a matrix that exists
 and a matrix that holds the line.
 
 ---
-<!-- pos: 5,0 -->
 <!-- kicker: 05 — Generation -->
 <!-- covers: O8,O9 -->
 <!-- goal: one definition yields both sides, so drift is a compile error rather than a discipline problem -->
@@ -283,7 +287,7 @@ and a matrix that holds the line.
 - Contract-driven development: align on contracts first; SDK developers **regenerate rather than hand-build surface**
 - Per-language surface labor collapsed. `This is why three SDKs is survivable with six.`
 ---
-<!-- pos: 5,1 -->
+<!-- down -->
 <!-- kicker: 05 — Generation -->
 <!-- covers: O10,O11 -->
 <!-- goal: explain why on-prem forces build-time enforcement - there is no telemetry to manage deprecation with -->
@@ -299,7 +303,6 @@ This is where *no is temporary, yes is forever* comes due: every surface we
 exposed is a yes we cannot retract, and nothing operational can take it back.
 
 ---
-<!-- pos: 7,0 -->
 <!-- kicker: 06 — Idioms -->
 <!-- covers: O17 -->
 <!-- goal: argue that uniformity serves the maintainer and idiom serves the customer -->
@@ -311,13 +314,13 @@ exposed is a yes we cannot retract, and nothing operational can take it back.
 - Idiomatic SDKs cost more to build
 - They pay back in **support tickets not filed, time-to-first-deploy, and customers who come back**
 ---
-<!-- pos: 7,1 -->
+<!-- down -->
 <!-- kicker: 06 — Idioms -->
 <!-- covers: O16 -->
-<!-- goal: show the JavaScript shape - composition is native -->
-# The same encrypt: JavaScript
+<!-- goal: show the same encrypt in three idiomatic shapes at once, so the comparison is seen rather than remembered -->
+# The same encrypt, three times
 
-Composition is native. Build the object up, pass it at the call site.
+**JavaScript**
 
 ```ts
 const client = new OpenTDF({
@@ -329,14 +332,8 @@ const cipherText = await client.createTDF({
   source: { type: 'stream', location: plainText },
 });
 ```
----
-<!-- pos: 7,2 -->
-<!-- kicker: 06 — Idioms -->
-<!-- covers: O16 -->
-<!-- goal: show the Go shape - variadic options -->
-# The same encrypt: Go
 
-Variadic options extend the call before it or inside it. The developer chooses.
+**Go**
 
 ```go
 s, err := sdk.New(platformEndpoint,
@@ -347,14 +344,8 @@ s.CreateTDF(&ciphertext, plaintext,
   sdk.WithDataAttributes(attr),
 )
 ```
----
-<!-- pos: 7,3 -->
-<!-- kicker: 06 — Idioms -->
-<!-- covers: O16 -->
-<!-- goal: show the Java shape - a builder, and why that expectation is legitimate -->
-# The same encrypt: Java
 
-Verbose by nature, wants a builder. That expectation is legitimate.
+**Java**
 
 ```java
 SDK sdk = new SDKBuilder()
@@ -367,8 +358,17 @@ var cfg = Config.newTDFConfig(
 );
 sdk.createTDF(in, out, cfg);
 ```
+
+<!-- notes:
+- don't read the code — point at the shapes
+- JS: composition is native, build the object, pass it at the call site
+- Go: variadic options, extend before the call or inside it, developer chooses
+- Java: verbose by nature, wants a builder, and that expectation is legitimate
+- identical semantics, three right answers — a uniform API would have been
+  wrong in at least two of them
+-->
+
 ---
-<!-- pos: 8,0 -->
 <!-- kicker: 07 — AI · techniques -->
 <!-- covers: O14,O15 -->
 <!-- goal: show the generated layer is raw material, and that wrapping it is where idioms come from -->
@@ -386,7 +386,6 @@ Generation gave us the surface. This is where the opinion gets added back —
 faster, not otherwise-impossible. Codegen is what made six engineers viable;
 this is what keeps it from eroding.
 ---
-<!-- pos: 8,1 -->
 <!-- kicker: 07 — AI · techniques -->
 <!-- covers: O27,O28 -->
 <!-- goal: land the patch-module pattern, and answer why an agent rather than a library -->
@@ -407,7 +406,7 @@ need it, least of all around code generation. This was an honest stop-gap that
 survived upstream moving — and it earned a lower bar than the SDKs because it
 was not the thing whose failures are silent.
 ---
-<!-- pos: 8,2 -->
+<!-- down -->
 <!-- kicker: 07 — AI · techniques -->
 <!-- covers: O23 -->
 <!-- goal: show AI watching upstream so downstream SDK work is staged, not discovered -->
@@ -422,8 +421,17 @@ the whole product — so the protos move without us.
   look like its neighbour's, so the SDK reads as one thing.
 
 The failure mode this replaces is finding out at release.
+
+<!-- REVIEW · NEEDS AN INSTANCE
+Described as a capability, never as something that happened. The deep-technical
+reviewer flagged this pattern across every AI slide. One dated example — a
+proto change the agent staged before anyone noticed — turns this from a
+mechanism into evidence. It is also optional depth: this column hangs off "The
+generated layer is not the SDK" and can be dropped whole if questions run long.
+-->
+
 ---
-<!-- pos: 8,3 -->
+<!-- down -->
 <!-- kicker: 07 — AI · techniques -->
 <!-- covers: O26 -->
 <!-- goal: land docs-as-executable-spec and the two-way check it produces -->
@@ -436,8 +444,16 @@ files, and an agent instead of step definitions.
 It is a **two-way check**: if the agent cannot follow the docs to a working
 integration, either the docs lie or the SDK regressed — and you learn which
 before a customer does.
+
+<!-- REVIEW · NEEDS AN INSTANCE
+Has the docs-as-test check ever actually caught a stale guide or a regression?
+If yes, name it and this becomes the strongest slide in the techniques column.
+If it has not fired yet, say so plainly — "we just stood this up" is more
+credible than implied results. Optional depth, same column as "Watching
+upstream"; droppable together.
+-->
+
 ---
-<!-- pos: 9,0 -->
 <!-- kicker: 08 — AI · pitfalls -->
 <!-- covers: O24 -->
 <!-- goal: establish that the model is good at filling typed parameters and bad at choosing the sequence -->
@@ -447,19 +463,24 @@ before a customer does.
 - **Weak:** knowing which of four plausible sequences is correct. More context doesn't fix it — **the correct sequence isn't written anywhere in the API surface.** It lives in the workflow opinion.
 - Without an SDK you're asking a model to reconstruct your protocol from endpoints. With one, its job shrinks to **filling typed parameters** — the part it's reliably good at.
 - Every constraint pushed into the type system is a check at build time instead of a bug that ships
----
-<!-- pos: 9,1 -->
-<!-- kicker: 08 — AI · pitfalls -->
-<!-- covers: O24 -->
-<!-- goal: show that compile-time errors beat request-time errors for an agent, and why -->
-# Compilation is a faster feedback loop than a request
 
-- A type checker reports **every** wrong argument at once. An endpoint rejects on the first thing it hits, so the agent iterates serially — one request and one context window per attempt
-- **An SDK gives errors before side effects.** A failed call costs something; created data, consumed a token, or half-written state. Compile errors are free to be wrong.
-- Docstrings and types are context the model gets **without paying to discover it**
-- Verbose server errors cost bandwidth and network-layer resources in environments where customers pay for both
+<!-- notes:
+- the compile-loop point, verbally — worth 30 seconds if the room is technical:
+  - a type checker reports EVERY wrong argument at once; an endpoint rejects on
+    the first thing it hits, so an agent iterates serially, one request and one
+    context window per attempt
+  - an SDK gives errors BEFORE side effects. a failed call may already have
+    created data, consumed a token, or half-written state. compile errors are
+    free to be wrong.
+  - docstrings and types are context the model gets without paying to discover it
+  - verbose server errors cost bandwidth in environments where the customer pays
+    for both
+- if asked for evidence here, be honest: this is reasoning about how models
+  work, not an incident we logged
+-->
+
 ---
-<!-- pos: 9,2 -->
+<!-- down -->
 <!-- kicker: 08 — AI · pitfalls -->
 <!-- covers: O25 -->
 <!-- goal: explain that deprecated-but-real API surface looks fine to everyone who was not there -->
@@ -470,7 +491,6 @@ before a customer does.
 - Deprecated-but-real API surface **looks fine to everyone** who's none the wiser.
 - Generated artifacts are the only trustworthy source *precisely because they're regenerated rather than recalled*
 ---
-<!-- pos: 10,0 -->
 <!-- kicker: 09 — Close -->
 <!-- covers: O11 -->
 <!-- goal: close on the through-line: no visibility into the environment means every guarantee must be mechanical -->
