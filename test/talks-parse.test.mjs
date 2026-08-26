@@ -264,11 +264,382 @@ title: Bad key
 ---
 
 <!-- pos: 0,0 -->
-<!-- notes: speak slowly -->
+<!-- speaker: Ryan -->
 
 # One
 `),
-    /unknown slide key: notes/,
+    /unknown slide key: speaker/,
+  );
+});
+
+// --- notes ----------------------------------------------------------------
+
+test("notes: absent slide has notes === null, not empty string", () => {
+  const [slide] = parseDeck(MINIMAL).slides;
+  assert.equal(slide.notes, null);
+});
+
+test("notes: single-line comment renders and is absent from html", () => {
+  const { slides } = parseDeck(`---
+title: Notes
+---
+
+<!-- pos: 0,0 -->
+<!-- notes: Six engineers, not sixty -->
+
+# One
+`);
+  assert.equal(slides[0].notes, "<p>Six engineers, not sixty</p>");
+  assert.doesNotMatch(slides[0].html, /Six engineers/);
+});
+
+test("notes: multi-line block renders markdown bullets to <ul> and mid-body placement is stripped from html", () => {
+  const { slides } = parseDeck(`---
+title: Notes
+---
+
+<!-- pos: 1,0 -->
+<!-- kicker: 01 - Scope -->
+
+# Two surfaces, orthogonal
+
+<!-- notes:
+- Six engineers, not sixty
+- Don't oversell the monorepo
+- If asked about C++: it was a wrapper
+-->
+
+Body copy the audience sees.
+`);
+  assert.equal(slides.length, 1);
+  assert.match(slides[0].notes, /<ul>/);
+  assert.match(slides[0].notes, /Six engineers, not sixty/);
+  assert.match(slides[0].notes, /If asked about C\+\+: it was a wrapper/);
+  assert.doesNotMatch(slides[0].html, /Six engineers/);
+  assert.equal(
+    slides[0].html,
+    "<h2>Two surfaces, orthogonal</h2>\n<p>Body copy the audience sees.</p>",
+  );
+});
+
+for (const marker of ["notes:", "notes", "note:", "note"]) {
+  test(`notes: single-line marker "<!-- ${marker} ... -->" is recognised`, () => {
+    const { slides } = parseDeck(`---
+title: Notes
+---
+
+<!-- pos: 0,0 -->
+<!-- ${marker} Six engineers, not sixty -->
+
+# One
+`);
+    assert.equal(slides[0].notes, "<p>Six engineers, not sixty</p>");
+    assert.doesNotMatch(slides[0].html, /Six engineers/);
+  });
+
+  test(`notes: multi-line marker "<!-- ${marker}" is recognised`, () => {
+    const { slides } = parseDeck(`---
+title: Notes
+---
+
+<!-- pos: 0,0 -->
+
+# One
+
+<!-- ${marker}
+- Six engineers, not sixty
+-->
+`);
+    assert.match(slides[0].notes, /Six engineers, not sixty/);
+    assert.doesNotMatch(slides[0].html, /Six engineers/);
+  });
+}
+
+test("an unrecognised comment block before pos does not break the slide", () => {
+  const { slides } = parseDeck(`---
+title: Prompt prep
+---
+
+<!-- Prompt: draft this slide about the migration, keep it punchy -->
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.equal(slides.length, 1);
+  assert.deepEqual(slides[0].pos, [0, 0]);
+  assert.doesNotMatch(slides[0].html, /Prompt/);
+});
+
+test("a stray comment block mid-body never reaches the rendered html", () => {
+  const { slides } = parseDeck(`---
+title: Stray comment
+---
+
+<!-- pos: 0,0 -->
+
+# One
+
+<!-- Reminder: don't mention the acquisition, it's not public yet -->
+
+Body copy the audience sees.
+`);
+  assert.equal(slides.length, 1);
+  assert.doesNotMatch(slides[0].html, /acquisition/);
+  assert.doesNotMatch(slides[0].html, /<!--/);
+  assert.doesNotMatch(slides[0].html, /&lt;!--/);
+  assert.match(slides[0].html, /Body copy the audience sees/);
+});
+
+test("no comment markup of any kind ever reaches rendered slide html, across a deck combining every case", () => {
+  const { slides } = parseDeck(`---
+title: Leak guard
+---
+
+<!-- Prompt: internal deck-prep notes, not for the audience -->
+
+<!-- pos: 0,0 -->
+<!-- kicker: 01 -->
+
+# One
+
+<!-- note
+- a private thought about Jane Doe
+-->
+
+Visible body one.
+
+---
+
+<!-- pos: 1,0 -->
+<!-- notes: a candid aside -->
+
+# Two
+
+<!-- Interview prep: ask about the outage -->
+
+Visible body two.
+`);
+  assert.equal(slides.length, 2);
+  for (const s of slides) {
+    assert.doesNotMatch(s.html, /<!--/, `slide at ${s.pos}: raw comment leaked`);
+    assert.doesNotMatch(s.html, /&lt;!--/, `slide at ${s.pos}: escaped comment leaked`);
+    assert.doesNotMatch(s.html, /Jane Doe|Prompt|Interview prep|outage|candid aside/);
+  }
+  assert.match(slides[0].html, /Visible body one/);
+  assert.match(slides[1].html, /Visible body two/);
+});
+
+test("notes: an unclosed multi-line block throws rather than swallowing the rest of the deck", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Unclosed notes
+---
+
+<!-- pos: 0,0 -->
+<!-- notes:
+- never closed
+
+# One
+`),
+    /notes block opened with <!-- notes: but never closed/,
+  );
+});
+
+// --- talk fence -----------------------------------------------------------
+
+test("a deck with no talk fence has talk === null, and covers/goal default", () => {
+  const { talk, slides } = parseDeck(MINIMAL);
+  assert.equal(talk, null);
+  assert.deepEqual(slides[0].covers, []);
+  assert.equal(slides[0].goal, null);
+});
+
+test("talk fence parses prompt and outline, and never reaches rendered html", () => {
+  const { talk, slides } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Architecture of one SDK/codegen system you own
+P2  Where language idioms did not map onto the shared spec
+
+O1  [P1]     What OpenTDF is
+O2  [P1,P2]  Conformance as ambiguity detection
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.deepEqual(talk.prompt, [
+    { id: "P1", text: "Architecture of one SDK/codegen system you own" },
+    { id: "P2", text: "Where language idioms did not map onto the shared spec" },
+  ]);
+  assert.deepEqual(talk.outline, [
+    { id: "O1", covers: ["P1"], text: "What OpenTDF is" },
+    { id: "O2", covers: ["P1", "P2"], text: "Conformance as ambiguity detection" },
+  ]);
+  assert.equal(slides.length, 1);
+  assert.doesNotMatch(slides[0].html, /Architecture of one SDK|OpenTDF|TALK_ONLY/);
+  assert.doesNotMatch(slides[0].html, /```talk|P1|O1/);
+});
+
+test("talk fence: ids may carry a trailing lowercase letter, e.g. P1a", () => {
+  const { talk } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1   First
+P1a  Sub-point of first
+
+O1  [P1a]  Covers the sub-point
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.deepEqual(talk.prompt.map((p) => p.id), ["P1", "P1a"]);
+  assert.deepEqual(talk.outline[0].covers, ["P1a"]);
+});
+
+test("slide covers and goal are parsed as ordinary slide metadata", () => {
+  const { slides } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+O1  [P1]  First point
+O2  [P1]  Second point
+\`\`\`
+
+<!-- pos: 0,0 -->
+<!-- covers: O1, O2 -->
+<!-- goal: land the point -->
+
+# One
+`);
+  assert.deepEqual(slides[0].covers, ["O1", "O2"]);
+  assert.equal(slides[0].goal, "land the point");
+  assert.doesNotMatch(slides[0].html, /covers|goal/);
+});
+
+test("covers defaults to empty array (never null) when absent but a talk fence exists", () => {
+  const { slides } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+O1  [P1]  First point
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.deepEqual(slides[0].covers, []);
+  assert.equal(slides[0].goal, null);
+});
+
+test("talk fence: outline item referencing an unknown prompt id throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+O1  [P9]  Bad ref
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`),
+    /unknown prompt id: P9/,
+  );
+});
+
+test("talk fence: a slide covers referencing an unknown outline id throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+O1  [P1]  First point
+\`\`\`
+
+<!-- pos: 0,0 -->
+<!-- covers: O9 -->
+
+# One
+`),
+    /unknown outline id: O9/,
+  );
+});
+
+test("talk fence: duplicate prompt id throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+P1  Something else
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`),
+    /duplicate prompt id: P1/,
+  );
+});
+
+test("talk fence: duplicate outline id throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+O1  [P1]  First
+O1  [P1]  Again
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`),
+    /duplicate outline id: O1/,
+  );
+});
+
+test("a slide covers set when the deck has no talk fence throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: No talk
+---
+
+<!-- pos: 0,0 -->
+<!-- covers: O1 -->
+
+# One
+`),
+    /covers set but deck has no talk/,
   );
 });
 
@@ -369,9 +740,15 @@ test("decks/slidecard.md parses to 6 slides", () => {
   for (const s of slides) assert.equal(s.pos.length, 2);
 });
 
-test("decks/generation-gave-us-the-surface.md parses to 22 slides", () => {
+test("decks/generation-gave-us-the-surface.md parses, and every slide is well-formed", () => {
   const { slides } = parseDeck(deck("generation-gave-us-the-surface"));
-  assert.equal(slides.length, 22);
+  // Not a fixed count: this deck is living content the owner edits. Assert the
+  // invariants that must hold at any length instead.
+  assert.ok(slides.length > 0, "the real deck parses to at least one slide");
+  for (const s of slides) {
+    assert.ok(Array.isArray(s.pos) && s.pos.length === 2, "every slide has an x,y pos");
+  }
+  assert.equal(new Set(slides.map((s) => String(s.pos))).size, slides.length, "positions are unique");
 });
 
 test("every deck in decks/ parses and has unique positions", () => {

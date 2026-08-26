@@ -1,6 +1,6 @@
 // Render tests for /talks and /talks/<slug>.
 //
-// The first test is the one that matters: it renders the real 22-slide deck and
+// The first test is the one that matters: it renders the real deck and
 // asserts every word of every slide is in the server HTML. Reading is the
 // primary mode (design D1) and the player is an enhancement; the day someone
 // makes slides render client-side, this fails.
@@ -11,7 +11,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parseDeck } from "../src/talks/parse.js";
-import { renderTalksIndex, renderDeckPage } from "../src/render/talks.js";
+import { renderTalksIndex, renderDeckPage, renderPresenterPage } from "../src/render/talks.js";
+
+// routes/talks.js is NOT imported here: it pulls in the registry, which pulls
+// in the deck sources through the wrangler `Text` rule and only resolves
+// inside the Worker bundle (see src/render/talks.js's module comment). The
+// route-level behaviour of `?presenter` (200/404, routing) is verified by
+// curling `wrangler dev --local`, not by a node --test import.
 
 const DECK = "generation-gave-us-the-surface";
 
@@ -40,7 +46,8 @@ function fixture(overrides = {}) {
 
 test("no-JS smoke: every slide's text is in the server HTML", () => {
   const deck = parseDeck(deckSource(DECK));
-  assert.equal(deck.slides.length, 22, "the deck under test is the 22-slide one");
+  const N = deck.slides.length;
+  assert.ok(N > 0, "the real deck under test has slides");
 
   const page = renderDeckPage({ slug: DECK, ...deck });
   const pageText = text(page);
@@ -55,7 +62,7 @@ test("no-JS smoke: every slide's text is in the server HTML", () => {
   });
 
   const items = page.match(/<li class="slide"/g) ?? [];
-  assert.equal(items.length, 22, "one <li class=\"slide\"> per slide");
+  assert.equal(items.length, N, "one <li class=\"slide\"> per slide");
 });
 
 test("the deck page owns the h1 that renderMarkdown will not emit", () => {
@@ -213,4 +220,102 @@ test("the index has an honest empty state", () => {
   const html = renderTalksIndex([]);
   assert.match(html, /No talks published yet\./);
   assert.ok(!html.includes("<ul class=\"postlist\">"));
+});
+
+// --- speaker notes --------------------------------------------------------
+
+test("notes render inside the slide, hidden, after .slide-body", () => {
+  const page = renderDeckPage(
+    fixture({
+      slides: [
+        { pos: [0, 0], kicker: null, id: null, html: "<p>One</p>", notes: "<p>Say hello.</p>" },
+      ],
+    }),
+  );
+  assert.match(page, /<div class="slide-notes" hidden><p>Say hello\.<\/p><\/div>/);
+  const bodyIdx = page.indexOf('<div class="slide-body">');
+  const notesIdx = page.indexOf('<div class="slide-notes"');
+  assert.ok(bodyIdx > -1 && notesIdx > bodyIdx, "notes must come after .slide-body");
+});
+
+test("a slide without notes emits no .slide-notes element", () => {
+  const page = renderDeckPage(
+    fixture({
+      slides: [{ pos: [0, 0], kicker: null, id: null, html: "<p>One</p>", notes: null }],
+    }),
+  );
+  assert.ok(!page.includes("slide-notes"));
+});
+
+test("a slide with undefined notes (parser not yet updated) also emits no .slide-notes", () => {
+  const page = renderDeckPage(
+    fixture({ slides: [{ pos: [0, 0], kicker: null, id: null, html: "<p>One</p>" }] }),
+  );
+  assert.ok(!page.includes("slide-notes"));
+});
+
+// --- presenter view --------------------------------------------------------
+
+function presenterFixture() {
+  return fixture({
+    meta: { title: "Fixture deck", fonts: [] },
+    slides: [
+      { pos: [0, 0], kicker: "01", id: "one", html: "<h2>One</h2>", notes: "<p>Remember the hook.</p>" },
+      { pos: [1, 0], kicker: null, id: "two", html: "<p>Two</p>", notes: null },
+      { pos: [2, 0], kicker: null, id: "three", html: "<p>Three</p>", notes: null },
+    ],
+  });
+}
+
+test("presenter page: body carries the presenter class and data-slug", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.match(page, /<body class="presenter" data-slug="fixture">/);
+});
+
+test("presenter page: shows current slide notes as the primary content", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.match(page, /<p>Remember the hook\.<\/p>/);
+});
+
+test("presenter page: shows the current slide and the next slide, reusing .slide-card", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.equal((page.match(/class="slide-card"/g) ?? []).length, 2);
+  assert.match(page, /<h2>One<\/h2>/);
+  assert.match(page, /<p>Two<\/p>/);
+});
+
+test("presenter page: position indicator shows N / total and the pos coordinate", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.match(page, /1 \/ 3/);
+  assert.match(page, /0,\s*0/);
+});
+
+test("presenter page: has a timer with start, pause and reset controls", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.match(page, /data-timer/);
+  assert.match(page, /data-timer-start/);
+  assert.match(page, /data-timer-pause/);
+  assert.match(page, /data-timer-reset/);
+});
+
+test("presenter page: loads the same deck.js module as the audience page", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.match(page, /<script type="module" src="\/talks\/deck\.js" defer><\/script>/);
+});
+
+test("presenter page: no camera or player chrome markup", () => {
+  const page = renderPresenterPage(presenterFixture());
+  assert.ok(!page.includes("<video"));
+});
+
+// The `?presenter` route itself (200 for a known slug, 404 for an unknown
+// one, `/talks/<slug>` unaffected) is verified against `wrangler dev --local`
+// via curl — see the task report — because src/routes/talks.js cannot be
+// imported under plain `node --test` (module comment, src/render/talks.js:15-20).
+
+test("presenter page: the real deck's slide 1 notes reach the page when present", () => {
+  const deck = parseDeck(deckSource(DECK));
+  const page = renderPresenterPage({ slug: DECK, ...deck });
+  assert.match(page, /<body class="presenter" data-slug="generation-gave-us-the-surface">/);
+  assert.match(page, new RegExp(`1 / ${deck.slides.length}`));
 });

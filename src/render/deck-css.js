@@ -388,6 +388,49 @@ export const DECK_CSS = `
 .deck-launch:hover { background: var(--accent); color: var(--card); }
 .deck--player .deck-launch { display: none; }
 
+/* Presenter popout trigger (Task A) — only exists in player mode; deck.js
+   creates/removes it alongside the hint bar. Opposite corner from the exit
+   hint so it never collides with the keycap bar's live count. */
+.deck-presenter-btn {
+  position: fixed;
+  inset-block-start: 1.2rem;
+  inset-inline-end: 1.2rem;
+  z-index: 5;
+  padding: .5em .9em;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: .55;
+  box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 6px 18px rgba(0,0,0,.10);
+}
+.deck-presenter-btn:hover, .deck-presenter-btn:focus-visible { opacity: 1; background: var(--accent); color: var(--card); }
+
+/* Shown only when window.open() returned null (popup blocked) — Task A is
+   explicit this must never fail silently the night before a talk. */
+.deck-popup-warn {
+  position: fixed;
+  inset-block-start: 4.2rem;
+  inset-inline-end: 1.2rem;
+  z-index: 6;
+  max-inline-size: 20rem;
+  padding: .8em 1em;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: .78rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 6px 18px rgba(0,0,0,.10);
+}
+.deck-popup-warn a { color: var(--accent); font-weight: 700; }
+
 .deck-hint {
   position: absolute;
   z-index: 3;
@@ -447,6 +490,232 @@ export const DECK_CSS = `
     letter-spacing: .1em;
     text-transform: uppercase;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Presenter popout (Task C). Scoped entirely under body.presenter, so none
+ * of it can leak into the deck or reading mode, and none of it reads
+ * --card-w / --step-x/y / --type-scale -- this is a fixed grid, not the
+ * camera. Ground truth for the markup is src/render/talks.js's
+ * renderPresenterPage: a bare <body class="presenter" data-slug="…"> (no
+ * layout(), no nav/footer) wrapping one <div class="presenter-layout">.
+ *
+ * That page embeds the deck's own theme stylesheet same as the audience
+ * page, but nothing on it carries class="deck" (only .slide-card, reused
+ * via slideCardInner, does), so a theme's ".deck { --card: ... }" override
+ * never matches here at all. public/talks/deck.js bridges the *audience*
+ * page's real computed token values onto <body> once it loads a hidden
+ * iframe of /talks/<slug> — the tokens below are only the pre-JS/no-JS
+ * fallback, deliberately dark since a presenter view is backstage.
+ * ------------------------------------------------------------------ */
+body.presenter {
+  --card: #1c1d22;
+  --ink: #eceef2;
+  --muted: #9096a3;
+  --accent: #6cd4ff;
+  --rule: #33353d;
+  --deck-bg: #101015;
+
+  margin: 0;
+  min-block-size: 100dvh;
+  background: var(--rule);
+  color: var(--ink);
+  font-family: var(--serif);
+}
+
+.presenter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 26vw);
+  grid-template-rows: 1fr auto;
+  gap: 1px;
+  /* Was min-block-size, which only sets a FLOOR: .presenter-notes spans both
+     rows, and a grid track's "auto" max-sizing function still grows to a
+     spanning item's max-content regardless of overflow:auto on that item --
+     verified a long-notes slide on the real deck pushed this to 1572px tall
+     against a 900px viewport, with notes.scrollHeight matching its rendered
+     height exactly (i.e. never actually scrolling; the whole page did). A
+     definite block-size instead caps the grid itself, which is what lets
+     .presenter-notes's own overflow: auto become a real internal scrollbar. */
+  block-size: 100dvh;
+}
+
+.presenter-notes {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  /* .presenter-notes spans both rows of a "1fr auto" template. A grid
+     container's own block-size (above) bounds the OUTER box, but it does
+     NOT cap an "auto" row's max-content sizing function -- an item spanning
+     into that row still grows the row (and the whole grid) to fit its
+     content, verified: a long-notes slide pushed .presenter-layout to
+     1572px against a 900px viewport even with block-size: 100dvh set on it.
+     Capping the ITEM's own box directly is what makes its max-content
+     contribution bounded, which is what lets overflow: auto below become a
+     real internal scrollbar instead of growing the page. */
+  max-block-size: 100dvh;
+  padding: clamp(1.75rem, 3vw, 3.25rem);
+  /* The fixed .presenter-nav bar floats over this column's bottom edge;
+     without extra clearance it can sit on top of the last line of notes
+     text when a slide's notes run long enough to need the scrollbar. */
+  padding-block-end: calc(clamp(1.75rem, 3vw, 3.25rem) + 3.4rem);
+  overflow: auto;
+  background: var(--deck-bg);
+  font-size: clamp(1.2rem, 1rem + 1.1vw, 2rem);
+  line-height: 1.55;
+}
+.presenter-notes .presenter-notes-empty { opacity: .45; font-style: italic; }
+.presenter-notes > :first-child { margin-block-start: 0; }
+.presenter-notes > :last-child { margin-block-end: 0; }
+.presenter-notes h2, .presenter-notes h3 { line-height: 1.2; text-wrap: balance; }
+.presenter-notes ul, .presenter-notes ol { padding-inline-start: 1.2em; }
+.presenter-notes a { color: var(--accent); }
+
+.presenter-slide {
+  padding: 1rem 1rem .5rem;
+  background: var(--deck-bg);
+  overflow: hidden;
+}
+.presenter-slide--current { grid-column: 2; grid-row: 1; align-self: end; }
+.presenter-slide--next { grid-column: 2; grid-row: 2; opacity: .68; }
+.presenter-slide, .presenter-slide * {
+  /* .slide-card's own box-sizing: border-box comes from ".deck, .deck *"
+     (deck-css.js above); nothing on the presenter page has class="deck" as
+     an ancestor of these cloned cards, so without this they fall back to
+     content-box and padding adds on top of inline-size: 100% -- verified
+     overflowing the card ~43px past its container at 1100px wide before
+     this rule existed. */
+  box-sizing: border-box;
+}
+.presenter-slide .slide-card {
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 16 / 9;
+  /* .slide-card's base font-size is a clamp() off the viewport width, tuned
+     for a card that IS roughly the viewport (reading mode) or a fraction of
+     it capped generously (player mode, --card-w). Neither assumption holds
+     for a ~26vw sidebar preview -- verified overflowing text past the
+     card's right edge at 1440px wide before this override. */
+  font-size: clamp(.55rem, .4rem + .5vw, .8rem);
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  user-select: none;
+  /* aspect-ratio only sets a PREFERRED height -- a bullet-heavy slide's own
+     min-content still wins and grows the card past it, which pushed
+     .presenter-layout taller than 100dvh on the real 22-slide deck (a
+     content slide with no notes: current-card measured 274px and the next
+     preview 518px against a 161px 16:9 box at 1100px wide, verified via
+     getBoundingClientRect), forcing the whole page to scroll and cropping
+     the next-slide preview off the bottom of the viewport. This clips the
+     preview to its intended small box instead -- previews are secondary
+     content per spec, so truncating one is correct where growing the page
+     past the viewport is not. */
+  overflow: hidden;
+}
+.presenter-slide-label {
+  margin: 0 0 .5em;
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.presenter-position, .presenter-timer {
+  position: fixed;
+  inset-block-start: .9rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: .6em;
+  padding: .4em .8em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--deck-bg) 75%, transparent);
+  font-family: var(--mono);
+  font-size: .95rem;
+  letter-spacing: .04em;
+  color: var(--ink);
+}
+.presenter-position { inset-inline-start: .9rem; }
+.presenter-pos-coord { opacity: .6; }
+.presenter-timer { inset-inline-end: .9rem; }
+.timer-display { font-size: 1.35em; font-variant-numeric: tabular-nums; }
+.timer-controls { display: flex; gap: .4em; }
+.presenter-timer button {
+  font: inherit;
+  font-size: .62rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: .3em .65em;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.presenter-timer button:hover, .presenter-timer button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Prev/Next (owner request: presenter needs its own nav, not just the deck
+   window's). Built entirely in public/talks/deck.js -- no markup for this
+   ships from src/render/talks.js -- so it's styled here as chrome floating
+   over .presenter-layout, matching .presenter-position/.presenter-timer's
+   fixed-badge treatment rather than taking a layout track of its own. */
+.presenter-nav {
+  position: fixed;
+  inset-block-end: .9rem;
+  inset-inline: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: .9em;
+  pointer-events: none;
+}
+.presenter-nav-btn {
+  pointer-events: auto;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: .78rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: .5em 1em;
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--deck-bg) 82%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+}
+.presenter-nav-btn:hover:not(:disabled),
+.presenter-nav-btn:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.presenter-nav-btn:disabled {
+  opacity: .35;
+  cursor: default;
+}
+/* The actual authored-sequence direction (spec: slides sit on a 2D map, so
+   "next" may walk right, down, up or diagonally) plus, when it differs, the
+   branch a vertical arrow-key press would reach instead -- the one thing a
+   linear counter can never tell a presenter. */
+.presenter-nav-dir {
+  min-inline-size: 1.4em;
+  font-family: var(--mono);
+  font-size: .95rem;
+  letter-spacing: .04em;
+  color: var(--accent);
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .presenter-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+  .presenter-slide--current { grid-column: 1; grid-row: 1; align-self: stretch; }
+  .presenter-slide--next { grid-column: 1; grid-row: 2; }
+  .presenter-notes { grid-column: 1; grid-row: 3; }
 }
 
 /* ------------------------------------------------------------------ *

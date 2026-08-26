@@ -125,7 +125,7 @@ ${renderDeck(slides)}
  * The deck itself. This markup is a contract with src/render/deck-css.js and
  * public/talks/deck.js — class names and `data-pos` are load-bearing.
  *
- * @param {{ pos: number[], kicker: string|null, id: string|null, html: string }[]} slides
+ * @param {{ pos: number[], kicker: string|null, id: string|null, html: string, notes?: string|null }[]} slides
  */
 export function renderDeck(slides) {
   const items = slides.map(slideItem).join("\n");
@@ -140,8 +140,92 @@ ${items}
 function slideItem(slide, i) {
   const id = slide.id || `s${i + 1}`;
   const [x, y] = slide.pos;
+  const notes = slide.notes ? `<div class="slide-notes" hidden>${slide.notes}</div>` : "";
+  return `<li class="slide" id="${e(id)}" data-pos="${e(`${x},${y}`)}"><div class="slide-card">${slideCardInner(slide)}</div>${notes}</li>`;
+}
+
+/**
+ * The inside of a `.slide-card`: kicker + `.slide-body`. Shared by the deck
+ * page and the presenter page so both inherit the deck's theme from the same
+ * markup (`.slide-card` is the selector deck-css.js themes).
+ */
+function slideCardInner(slide) {
   const kicker = slide.kicker ? `<span class="kicker">${e(slide.kicker)}</span>` : "";
-  return `<li class="slide" id="${e(id)}" data-pos="${e(`${x},${y}`)}"><div class="slide-card">${kicker}<div class="slide-body">${slide.html}</div></div></li>`;
+  return `${kicker}<div class="slide-body">${slide.html}</div>`;
+}
+
+/**
+ * The presenter view: `/talks/<slug>?presenter`.
+ *
+ * A different page from the same deck data — no camera, no player chrome —
+ * always starting at slide 1 in document order: the route is stateless, and
+ * `?presenter` must work standalone with no main window open (spec req. 2).
+ * The current and next slides reuse `.slide-card` (via slideCardInner) so
+ * they inherit the deck's own theme, same as the audience page.
+ *
+ * `<body class="presenter">` and `data-slug` are the hooks deck-css.js and
+ * deck.js (built by the other two agents in flight) target; deck.js is
+ * loaded exactly as it is on the audience page since one script drives both.
+ *
+ * @param {{ slug: string, meta: object, theme: string|null, slides: object[] }} deck
+ */
+export function renderPresenterPage(deck) {
+  const { slug, meta, theme, slides } = deck;
+  const current = slides[0] ?? null;
+  const next = slides[1] ?? null;
+
+  const head = [
+    fontLinks(meta.fonts),
+    `<style>${escapeStyle(DECK_CSS)}</style>`,
+    theme ? `<style>${escapeStyle(theme)}</style>` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const currentBlock = current
+    ? `<div class="presenter-slide presenter-slide--current"><div class="slide-card">${slideCardInner(current)}</div></div>`
+    : "";
+  const nextBlock = next
+    ? `<div class="presenter-slide presenter-slide--next"><p class="presenter-slide-label">Next</p><div class="slide-card">${slideCardInner(next)}</div></div>`
+    : "";
+
+  const notesBody = current?.notes
+    ? current.notes
+    : `<p class="presenter-notes-empty">No notes for this slide.</p>`;
+
+  const [x, y] = current?.pos ?? [0, 0];
+  const position = `<div class="presenter-position" data-pos="${e(`${x},${y}`)}">${
+    slides.length ? 1 : 0
+  } / ${slides.length} <span class="presenter-pos-coord">${e(`${x}, ${y}`)}</span></div>`;
+
+  const timer = `<div class="presenter-timer" data-timer>
+  <span class="timer-display" data-timer-display>00:00</span>
+  <div class="timer-controls">
+    <button type="button" data-timer-start>Start</button>
+    <button type="button" data-timer-pause>Pause</button>
+    <button type="button" data-timer-reset>Reset</button>
+  </div>
+</div>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${e(meta.title)} — presenter notes</title>
+${head}
+</head>
+<body class="presenter" data-slug="${e(slug)}">
+<div class="presenter-layout">
+${currentBlock}
+${nextBlock}
+<div class="presenter-notes">${notesBody}</div>
+${position}
+${timer}
+</div>
+<script type="module" src="/talks/deck.js" defer></script>
+</body>
+</html>`;
 }
 
 /**

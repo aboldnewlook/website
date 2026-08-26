@@ -8,7 +8,12 @@
 // the right outcome — a malformed deck is a deploy bug, not a 404.
 
 import { listDecks, getDeck } from "../talks/registry.js";
-import { renderTalksIndex, renderDeckPage, patternSvgResponse } from "../render/talks.js";
+import {
+  renderTalksIndex,
+  renderDeckPage,
+  renderPresenterPage,
+  patternSvgResponse,
+} from "../render/talks.js";
 
 const HTML = {
   "content-type": "text/html; charset=utf-8",
@@ -19,11 +24,18 @@ export function handleTalksIndex() {
   return new Response(renderTalksIndex(listDecks()), { headers: HTML });
 }
 
-/** Returns null when the slug is not a deck; the router turns that into a 404. */
+/**
+ * Returns null when the slug is not a deck; the router turns that into a 404.
+ * `?presenter` serves the standalone presenter view from the same deck data
+ * instead of the audience page — it must 404 the same way for an unknown
+ * slug, so the lookup happens before the query string is even inspected.
+ */
 export function handleTalk(request, env, slug) {
   const deck = getDeck(slug);
   if (!deck) return null;
-  return new Response(renderDeckPage(deck), { headers: HTML });
+  const url = new URL(request.url);
+  const page = url.searchParams.has("presenter") ? renderPresenterPage(deck) : renderDeckPage(deck);
+  return new Response(page, { headers: HTML });
 }
 
 /**
