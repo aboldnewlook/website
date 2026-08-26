@@ -42,6 +42,10 @@ const FONT_RE = /^[A-Za-z0-9+:;@,._-]+$/;
 const FM_KEY = /^[A-Za-z][A-Za-z0-9_]*$/;
 const FM_ITEM = /^\s*-\s+(.*)$/;
 const SLIDE_META = /^<!--\s*([a-z][a-z0-9_]*)\s*:\s*(.*?)\s*-->$/;
+// Bare marker (no `key: value`) for relative positioning (§ derived mode):
+// this slide is vertical, one step down in the same column as the slide
+// before it. Sits among the other leading slide comments, in any order.
+const DOWN_MARKER = /^<!--\s*down\s*-->$/;
 const THEME_FENCE = /^```css theme\n([\s\S]*?)\n```$/m;
 const TALK_FENCE = /^```talk\n([\s\S]*?)\n```$/m;
 // Ids are opaque strings matching [A-Z][0-9]+[a-z]? (design §3): "P1a" is legal.
@@ -270,20 +274,51 @@ function splitSlides(text, talk) {
 
   if (!chunks.length) throw new Error("no slides found");
 
-  const seen = new Map();
-  return chunks.map((chunk, i) => {
+  const parsedChunks = chunks.map((chunk, i) => {
     const { notes: rawNotes, rest: withoutNotes } = extractNotes(chunk);
-    const { fields, body } = takeSlideMeta(withoutNotes);
+    const { fields, down, body } = takeSlideMeta(withoutNotes);
     const label = `slide ${i + 1}${fields.kicker ? ` (${fields.kicker})` : ""}`;
+    return { fields, down, body, rawNotes, label };
+  });
 
+  // Deck mode is decided once, by the first slide (§3): if it sets an
+  // explicit pos, the whole deck is explicit-mode and behaves exactly as
+  // before; otherwise the deck is derived-mode, and coordinates are walked
+  // from document order. A deck may not mix the two - silent mixing would
+  // produce a wrong map that still validates, so any slide that disagrees
+  // with the mode slide 1 established throws, naming itself.
+  const mode = parsedChunks[0].fields.pos !== undefined ? "explicit" : "derived";
+
+  const seen = new Map();
+  let prevPos = null;
+
+  return parsedChunks.map(({ fields, down, body, rawNotes, label }, i) => {
     for (const key of Object.keys(fields)) {
       if (!SLIDE_KEYS.has(key)) throw new Error(`${label}: unknown slide key: ${key}`);
     }
 
-    if (!fields.pos) throw new Error(`${label}: missing required pos`);
-    const m = POS.exec(fields.pos);
-    if (!m) throw new Error(`${label}: pos must be two integers "x,y", got "${fields.pos}"`);
-    const pos = [Number(m[1]), Number(m[2])];
+    const hasExplicitPos = fields.pos !== undefined;
+    if (hasExplicitPos !== (mode === "explicit")) {
+      throw new Error(
+        `${label}: this deck mixes explicit pos (set on slide 1) with derived positioning ` +
+          `(<!-- down --> or a bare default) - a deck must use one or the other, never both`,
+      );
+    }
+
+    let pos;
+    if (mode === "explicit") {
+      const m = POS.exec(fields.pos);
+      if (!m) throw new Error(`${label}: pos must be two integers "x,y", got "${fields.pos}"`);
+      pos = [Number(m[1]), Number(m[2])];
+    } else if (i === 0) {
+      if (down) throw new Error(`${label}: the first slide cannot be marked down - there is nothing above it`);
+      pos = [0, 0];
+    } else if (down) {
+      pos = [prevPos[0], prevPos[1] + 1];
+    } else {
+      pos = [prevPos[0] + 1, 0];
+    }
+    prevPos = pos;
 
     const key = pos.join(",");
     if (seen.has(key)) {
@@ -328,10 +363,16 @@ function splitSlides(text, talk) {
 function takeSlideMeta(chunk) {
   const lines = chunk.split("\n");
   const fields = {};
+  let down = false;
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     if (!line.trim()) {
+      i++;
+      continue;
+    }
+    if (DOWN_MARKER.test(line.trim())) {
+      down = true;
       i++;
       continue;
     }
@@ -350,7 +391,7 @@ function takeSlideMeta(chunk) {
     }
     break;
   }
-  return { fields, body: lines.slice(i).join("\n").trim() };
+  return { fields, down, body: lines.slice(i).join("\n").trim() };
 }
 
 // Index of the line (from `from`, inclusive) that contains the closing

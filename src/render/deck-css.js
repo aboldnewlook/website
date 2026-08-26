@@ -362,6 +362,109 @@ export const DECK_CSS = `
   overflow: hidden;
 }
 
+/* Multi-column code compare (three or more code samples on one slide).
+   The deck author has no wrapper element or class to reach for this --
+   src/blog/markdown.js escapes raw HTML, so a three-sample slide always
+   renders as flat siblings: <h2>, then a <p><strong>label</strong></p> +
+   <pre> pair per sample, in document order. The layout is therefore
+   selected structurally with :has(), never authored. Player-only: reading
+   mode keeps the plain block flow above and stacks the pairs, which is
+   the reasonable behaviour in a ~48rem document column (D2's own scoping
+   rule already keeps every player-mode change out of reading mode).
+
+   :has(> pre:nth-of-type(3)) matches "three or more" <pre> children, not
+   exactly three -- a 4th sample falls through to CSS's normal grid
+   auto-placement into an implicit 4th row rather than a 4th column, which
+   is an acceptable degrade for a shape the deck does not currently use.
+   The direct-child combinator keeps a <pre> nested inside a blockquote or
+   list from ever counting.
+
+   Placement is fully explicit (h2 spans the row; each label/code pair is
+   pinned to its own column and row) rather than a bare
+   repeat(3, 1fr) grid, because implicit auto-flow lays the seven
+   children out left-to-right, top-to-bottom and interleaves the labels
+   and code blocks across rows instead of pairing each label with the
+   code beneath it. */
+.deck--player .slide-body:has(> pre:nth-of-type(3)) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: 1.4em;
+  row-gap: .35em;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: 1.8em;
+  row-gap: .35em;
+}
+/* h2 always spans the full row. --measure-h2-slide (20ch) is sized for a
+   single-column display heading; a heading pinned across two or three
+   columns needs the width back or it wraps hard against its own measure
+   well before the grid track does. */
+.deck--player .slide-body:has(> pre:nth-of-type(2)) > h2 {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  max-inline-size: none;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(2)) > p,
+.deck--player .slide-body:has(> pre:nth-of-type(2)) > pre {
+  /* A grid item's automatic minimum width is its content's min-content --
+     for a <pre> with no wrapping that is its longest line, which is wider
+     than a 1/3 column for real code and would blow the 1fr tracks out to
+     fit it instead of shrinking. This override is what lets the column
+     win and the code scroll/shrink internally instead. */
+  min-inline-size: 0;
+  max-inline-size: none;
+  margin: 0;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(2)) > pre {
+  min-block-size: 0;
+  overflow: auto;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > pre {
+  /* Three columns leaves each sample roughly a third of the card's
+     content width -- narrower than the .8em pre text this deck otherwise
+     uses can fit without wrapping. Still an em off the card's own
+     font-size (--type-scale * --card-w), the one root every slide length
+     is required to track (spec 8.1) -- not a new absolute size. */
+  font-size: .5em;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > pre {
+  font-size: .68em;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > p:nth-of-type(1),
+.deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > p:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > p:nth-of-type(2),
+.deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > p:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > p:nth-of-type(3) {
+  grid-column: 3;
+  grid-row: 2;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > pre:nth-of-type(1),
+.deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > pre:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 3;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > pre:nth-of-type(2),
+.deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > pre:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 3;
+}
+.deck--player .slide-body:has(> pre:nth-of-type(3)) > pre:nth-of-type(3) {
+  grid-column: 3;
+  grid-row: 3;
+}
+
 /* ------------------------------------------------------------------ *
  * Chrome: launch button, keycap hint bar, rotate veil.
  * ------------------------------------------------------------------ */

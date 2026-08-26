@@ -209,17 +209,218 @@ title: Order
   );
 });
 
-test("missing pos throws", () => {
-  assert.throws(
-    () => parseDeck(`---
+// A deck with no explicit `pos` anywhere is derived-mode (§ relative
+// positioning): the first slide has nothing above or left of it, so it
+// defaults to [0,0] rather than throwing. This supersedes the old
+// hand-maintained-pos requirement that every slide declare pos.
+test("no pos anywhere: first slide defaults to derived [0,0]", () => {
+  const { slides } = parseDeck(`---
 title: No pos
 ---
 
 <!-- kicker: 01 -->
 
 # One
+`);
+  assert.deepEqual(slides[0].pos, [0, 0]);
+  assert.equal(slides[0].kicker, "01");
+});
+
+// --- relative positioning (derived mode) --------------------------------
+
+test("derived mode: default is horizontal - each slide starts a new column, y=0", () => {
+  const { slides } = parseDeck(`---
+title: Derived
+---
+
+# One
+
+---
+
+# Two
+
+---
+
+# Three
+`);
+  assert.deepEqual(
+    slides.map((s) => s.pos),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
+  );
+});
+
+test("derived mode: <!-- down --> goes vertical, same column, one step down", () => {
+  const { slides } = parseDeck(`---
+title: Derived
+---
+
+# One
+
+---
+<!-- down -->
+
+# Two
+`);
+  assert.deepEqual(
+    slides.map((s) => s.pos),
+    [
+      [0, 0],
+      [0, 1],
+    ],
+  );
+});
+
+test("derived mode: consecutive <!-- down --> deepens the same column", () => {
+  const { slides } = parseDeck(`---
+title: Derived
+---
+
+# One
+
+---
+
+# Two
+
+---
+<!-- down -->
+
+# Three
+
+---
+<!-- down -->
+
+# Four
+
+---
+<!-- down -->
+
+# Five
+`);
+  assert.deepEqual(
+    slides.map((s) => s.pos),
+    [
+      [0, 0],
+      [1, 0],
+      [1, 1],
+      [1, 2],
+      [1, 3],
+    ],
+  );
+});
+
+test("derived mode: <!-- down --> may sit in any order among the other leading comments", () => {
+  const { slides } = parseDeck(`---
+title: Derived
+---
+
+# One
+
+---
+<!-- kicker: 02 -->
+<!-- down -->
+<!-- goal: land it -->
+
+# Two
+`);
+  assert.deepEqual(slides[1].pos, [0, 1]);
+  assert.equal(slides[1].kicker, "02");
+  assert.equal(slides[1].goal, "land it");
+});
+
+test("derived mode: the first slide may not be marked down - there is nothing above it", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Derived
+---
+
+<!-- down -->
+
+# One
 `),
-    /slide 1 \(01\): missing required pos/,
+    /slide 1: the first slide cannot be marked down/,
+  );
+});
+
+test("mixed mode: a derived deck (slide 1 has no pos) with a later explicit pos throws, naming the slide", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Mixed
+---
+
+# One
+
+---
+<!-- pos: 5,5 -->
+
+# Two
+`),
+    /slide 2: .*mixes.*pos.*derived/i,
+  );
+});
+
+test("mixed mode: an explicit deck (slide 1 has pos) with a later slide missing pos throws, naming the slide", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Mixed
+---
+
+<!-- pos: 0,0 -->
+
+# One
+
+---
+
+# Two
+`),
+    /slide 2: .*mixes.*pos.*derived/i,
+  );
+});
+
+test("mixed mode: an explicit deck with a later slide using <!-- down --> instead of pos throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Mixed
+---
+
+<!-- pos: 0,0 -->
+
+# One
+
+---
+<!-- down -->
+
+# Two
+`),
+    /slide 2: .*mixes.*pos.*derived/i,
+  );
+});
+
+test("explicit mode: a deck where every slide sets pos still parses identically to before (escape hatch for a non-linear map)", () => {
+  const { slides } = parseDeck(`---
+title: Explicit
+---
+
+<!-- pos: 2,-1 -->
+<!-- kicker: 01 -->
+
+# One
+
+---
+
+<!-- pos: 0,5 -->
+
+# Two
+`);
+  assert.deepEqual(
+    slides.map((s) => s.pos),
+    [
+      [2, -1],
+      [0, 5],
+    ],
   );
 });
 
@@ -682,6 +883,10 @@ two: 2
 });
 
 test("a fenced --- with no pos comment after it fails loudly", () => {
+  // Slide 1 has an explicit pos, so the deck is explicit-mode; the fence trap
+  // produces a slide 2 with no pos at all, which now surfaces as a
+  // mixed-mode error rather than "missing required pos" - still loud, still
+  // pointing at slide 2.
   assert.throws(
     () => parseDeck(`---
 title: Fence trap
@@ -697,7 +902,7 @@ title: example
 
 # One
 `),
-    /slide 2: missing required pos/,
+    /slide 2: .*mixes.*pos.*derived/i,
   );
 });
 
