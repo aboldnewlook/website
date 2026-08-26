@@ -137,29 +137,41 @@ saves ~20 seconds and costs the whole first act for half the room.
 ---
 <!-- down -->
 <!-- kicker: 01 — Scope -->
-<!-- covers: O2,O3,O4 -->
-<!-- goal: establish the surface area and the headcount, so the SDK bet reads as forced, not preferred -->
+<!-- covers: O2 -->
+<!-- goal: show the shapes we tried before this one, so the consolidation reads as earned rather than chosen -->
 # We tried the other shapes first
 
 - **11+ microservices** with a C++ core wrapped per language
 - Every language paid an interop tax **and still owed conformance on top**
-- Consolidated into one modular monorepo, native SDKs per language for performance
-- Six engineers against all of it: services, three SDKs, the CLI, the format, the crypto
+- Consolidated into one modular monorepo, native SDKs per language
+
+<!-- notes:
+- wrapper tax: every SDK inherited C++ build problems, FFI edges and platform
+  quirks — and interop with other wrappers still had to be proven separately
+- "native" is the point of the consolidation: each language stands alone,
+  which is what makes idioms possible later
+-->
+
+---
+<!-- down -->
+<!-- kicker: 01 — Scope -->
+<!-- covers: O3,O4 -->
+<!-- goal: land the constraint the whole talk rests on - small team, and no way to see what happens next -->
+# Six engineers, and no way to watch it land
+
+Six engineers against all of it: services, three SDKs, the CLI, the format,
+the crypto.
 
 And we cannot watch any of it land. Customers run air-gapped; what comes back
 is third-hand, months later, filtered through someone else's incident.
 
 Something had to give. **What gave was the SDK layer.**
 
-<!-- note
-- wrapper tax: every SDK inherited C++ build problems, FFI edges,
-  and platform quirks — and interop with other wrappers still had
-  to be proven separately
-- "native" is the point of the consolidation: each language stands
-  alone, which is what makes idioms possible later
-- the admission line is the setup for the thesis slide — deliver it
-  plainly, no hedging
+<!-- notes:
+- this is the premise the close pays off — say it plainly, do not rush it
+- the admission line is the setup for the thesis slide; deliver it flat, no hedging
 -->
+
 ---
 <!-- kicker: 02 — What an SDK is -->
 <!-- covers: O5,O6 -->
@@ -189,23 +201,37 @@ Something had to give. **What gave was the SDK layer.**
 <!-- kicker: 02 — What an SDK is -->
 <!-- covers: O7 -->
 <!-- goal: show that not shipping an SDK does not avoid the problem, it distributes it -->
-# The SDK is where change gets absorbed
+# They will build one anyway
 
 - Without one, your contract ends up **encoded as literals inside every customer application**
-- Competent developers will build one anyway; **once per customer, in private, with no conformance suite behind it**
+- Competent developers build their own; **once per customer, in private, with no conformance suite behind it**
 - Typed enums are the mechanism: values discoverable through the compiler rather than memorized
-- The SDK is the one surface where versioning can be *expressed*: a change
-  arrives **discoverable and typed, as a compile error, for whoever eventually
-  recompiles**. It does not schedule adoption, and it does not reach into an
-  environment we cannot see — that lever does not exist.
 
-<!--
-
-- contract embedded in customer environment as literals; hard to force upgrades without notification by package managers; impossible to facilitate updates
-- typed SDKs offer discovery
-  - compile time error is tight feedback loop for AI
-
+<!-- notes:
+- contract embedded in the customer environment as literals; no package-manager
+  notification, so you cannot force or even facilitate an upgrade
+- compile-time error is a tight feedback loop — for humans and for models
 -->
+
+---
+<!-- down -->
+<!-- kicker: 02 — What an SDK is -->
+<!-- covers: O7 -->
+<!-- goal: state precisely what versioning buys, so it never sounds like a lever we do not have -->
+# What versioning actually buys
+
+The SDK is the one surface where versioning can be **expressed**: a change
+arrives discoverable and typed, as a compile error, for whoever eventually
+recompiles.
+
+It does not schedule adoption. It does not reach into an environment we
+cannot see. **That lever does not exist.**
+
+<!-- notes:
+- say this carefully — it is the slide that stops the on-prem slide later
+  from sounding like a contradiction
+-->
+
 ---
 <!-- kicker: 03 — Failure evidence -->
 <!-- covers: O18,O19 -->
