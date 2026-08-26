@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+// Talk coverage report (design §4). Reports, deterministically, for one or
+// more deck files:
+//
+//   - prompt items with no outline item      (a gap in the plan)
+//   - outline items with no slide            (a gap in the deck)
+//   - slides covering nothing                (filler, or an untagged slide)
+//   - slides with no `goal`                  (no contract to test against)
+//   - percentage of prompt items covered by at least one slide, transitively
+//     (slide -> outline item -> prompt item)
+//
+// The report logic (`analyzeCoverage` / `formatReport`) is exported so it can
+// be imported and tested directly; the CLI below is a thin wrapper that reads
+// files, calls it, prints the report, and sets the exit code. It imports the
+// real parser (src/talks/parse.js) rather than reimplementing parsing.
+
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { parseDeck } from "../src/talks/parse.js";
+
+/**
+ * Analyze coverage for an already-parsed deck.
+ *
+ * @param {{ talk: object|null, slides: object[] }} parsed
+ * @returns {object} coverage report
+ */
+export function analyzeCoverage({ talk, slides }) {
+  if (!talk) {
+    return { hasTalk: false };
+  }
+
+  const outlineById = new Map(talk.outline.map((o) => [o.id, o]));
+
+  const coveredOutlineIds = new Set();
+  for (const slide of slides) {
+    for (const oid of slide.covers) coveredOutlineIds.add(oid);
+  }
+
+  const uncoveredOutline = talk.outline.filter((o) => !coveredOutlineIds.has(o.id)).map((o) => o.id);
+
+  const coveredPromptIds = new Set();
+  for (const oid of coveredOutlineIds) {
+    const o = outlineById.get(oid);
+    if (!o) continue; // dangling covers already reported by the parser as an error
+    for (const pid of o.covers) coveredPromptIds.add(pid);
+  }
+
+  const promptIds = talk.prompt.map((p) => p.id);
+  const uncoveredPrompts = promptIds.filter((pid) => !coveredPromptIds.has(pid));
+
+  const slidesCoveringNothing = slides.filter((s) => s.covers.length === 0).map(slideLabel);
+  const slidesWithNoGoal = slides.filter((s) => !s.goal).map(slideLabel);
+
+  const percentCovered = promptIds.length
+    ? Math.round((100 * (promptIds.length - uncoveredPrompts.length)) / promptIds.length)
+    : 100;
+
+  return {
+    hasTalk: true,
+    uncoveredPrompts,
+    uncoveredOutline,
+    slidesCoveringNothing,
+    slidesWithNoGoal,
+    percentCovered,
+  };
+}
+
+function slideLabel(slide) {
+  return slide.id ?? `pos ${slide.pos.join(",")}`;
+}
+
+/**
+ * Render a coverage report to a human-readable multi-line string.
+ *
+ * @param {string} label a name for the deck (usually its file path)
+ * @param {object} result the return value of analyzeCoverage
+ * @returns {string}
+ */
+export function formatReport(label, result) {
+  const lines = [label];
+
+  if (!result.hasTalk) {
+    lines.push("  no ```talk fence: nothing to report");
+    return lines.join("\n");
+  }
+
+  lines.push(`  coverage: ${result.percentCovered}% of prompt items covered`);
+
+  if (result.uncoveredPrompts.length) {
+    lines.push(`  prompt items with no outline item: ${result.uncoveredPrompts.join(", ")}`);
+  }
+  if (result.uncoveredOutline.length) {
+    lines.push(`  outline items with no slide: ${result.uncoveredOutline.join(", ")}`);
+  }
+  if (result.slidesCoveringNothing.length) {
+    lines.push(`  slides covering nothing: ${result.slidesCoveringNothing.join(", ")}`);
+  }
+  if (result.slidesWithNoGoal.length) {
+    lines.push(`  slides with no goal: ${result.slidesWithNoGoal.join(", ")}`);
+  }
+  if (
+    !result.uncoveredPrompts.length &&
+    !result.uncoveredOutline.length &&
+    !result.slidesCoveringNothing.length &&
+    !result.slidesWithNoGoal.length
+  ) {
+    lines.push("  clean: every prompt item covered, every outline item and slide accounted for");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Whether a report should fail the run (design §4: exit non-zero when any
+ * prompt item is uncovered, so it can gate).
+ *
+ * @param {object} result the return value of analyzeCoverage
+ * @returns {boolean}
+ */
+export function isFailing(result) {
+  return result.hasTalk && result.uncoveredPrompts.length > 0;
+}
+
+function main(argv) {
+  const files = argv.slice(2);
+  if (!files.length) {
+    console.error("usage: talk-coverage <deck.md> [...]");
+    return 1;
+  }
+
+  let failed = 0;
+  for (const file of files) {
+    const src = readFileSync(file, "utf8");
+    const parsed = parseDeck(src);
+    const result = analyzeCoverage(parsed);
+    console.log(formatReport(file, result));
+    if (isFailing(result)) failed++;
+  }
+  return failed ? 1 : 0;
+}
+
+// Only run the CLI when this file is executed directly, not when imported by
+// the test suite.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  process.exit(main(process.argv));
+}
