@@ -18,6 +18,133 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseDeck } from "../src/talks/parse.js";
 
+// Spine/depth (design: talks are a 2D map). pos[1] === 0 is the spine — the
+// talk itself, budgeted on its own. pos[1] > 0 is a column hanging below the
+// spine slide at the same pos[0]: optional depth, dropped when time runs
+// short. A vertical must be lighter than the spine slide it hangs off; if it
+// outweighs it, the deck is upside-down (strong material buried where it
+// gets cut under pressure).
+const WORDS_PER_MINUTE = 140;
+// Assumption, not a measurement: on-slide word count undercounts what's
+// actually said aloud, so the spoken-time estimate inflates the raw word
+// count by this factor before applying words-per-minute. See --help.
+const SPOKEN_WORD_MULTIPLIER = 1.11;
+
+/**
+ * Weight a slide by its rendered HTML: primary weight is rendered-line
+ * count (split on closing block tags, strip remaining tags from each
+ * resulting chunk, then count non-empty trimmed lines within that
+ * tag-stripped text — a multi-line <pre> chunk contributes one line per
+ * source line of code, which is exactly the trap: a 3-language code-compare
+ * slide racks up ~25 "lines" this way despite displaying in columns at
+ * roughly a third the visual height, see the preCount exemption below).
+ * Secondary weight is the word count of the tag-stripped text. Also reports
+ * how many <pre> blocks the slide contains, since a slide with 3+ is a
+ * side-by-side code-compare slide (see computeSpineDepth).
+ *
+ * @param {{ html: string }} slide
+ */
+function slideWeight(slide) {
+  const chunks = slide.html.split(/<\/(?:p|li|h2|pre|tr)>/);
+  let lines = 0;
+  for (const chunk of chunks) {
+    const stripped = chunk.replace(/<[^>]+>/g, "");
+    lines += stripped
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean).length;
+  }
+  const words = slide.html
+    .replace(/<[^>]+>/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const preCount = (slide.html.match(/<pre/g) ?? []).length;
+  return { lines, words, preCount };
+}
+
+function slideTitle(slide) {
+  const m = /<h2>([\s\S]*?)<\/h2>/.exec(slide.html);
+  const title = m ? m[1].replace(/<[^>]+>/g, "").trim() : "";
+  return title || slideLabel(slide);
+}
+
+function avg(nums) {
+  return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+}
+
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
+function spokenMinutesFor(words) {
+  return (words * SPOKEN_WORD_MULTIPLIER) / WORDS_PER_MINUTE;
+}
+
+/**
+ * Budget the spine, not the deck: report spine slide count/weight
+ * separately from verticals, and warn (never fail) when a column outweighs
+ * the spine slide it hangs off, or when verticals are heavier on average
+ * than the spine.
+ *
+ * @param {object[]} slides
+ */
+function computeSpineDepth(slides) {
+  const spine = slides.filter((s) => s.pos[1] === 0);
+  const verticals = slides.filter((s) => s.pos[1] > 0);
+
+  const spineWeights = spine.map(slideWeight);
+  const verticalWeights = verticals.map(slideWeight);
+
+  const spineAvgLines = avg(spineWeights.map((w) => w.lines));
+  const spineAvgWords = avg(spineWeights.map((w) => w.words));
+  const verticalAvgLines = avg(verticalWeights.map((w) => w.lines));
+  const verticalAvgWords = avg(verticalWeights.map((w) => w.words));
+
+  const spineWordsTotal = spineWeights.reduce((a, w) => a + w.words, 0);
+  const allWordsTotal = spineWordsTotal + verticalWeights.reduce((a, w) => a + w.words, 0);
+
+  // The general upside-down check compares word weight, not line weight: a
+  // single side-by-side code-compare slide (see the preCount exemption
+  // below) can rack up ~25 rendered "lines" from its code content alone
+  // while staying modest in words, which would otherwise make an
+  // appropriately-weighted deck look upside-down on the line metric alone.
+  // Word weight is also what the spoken-time estimate is built from, so
+  // it's the more honest single number for "is this deck's depth too
+  // heavy overall".
+  const generalWarning =
+    spine.length && verticals.length && verticalAvgWords > spineAvgWords
+      ? `verticals average ${round1(verticalAvgWords)} words vs spine average ${round1(spineAvgWords)} words — ` +
+        `the deck is upside-down: thin argument, strong material buried where it gets cut under pressure`
+      : null;
+
+  const spineByX = new Map(spine.map((s) => [s.pos[0], s]));
+  const columnWarnings = [];
+  for (const v of verticals) {
+    const s = spineByX.get(v.pos[0]);
+    if (!s) continue;
+    const vw = slideWeight(v);
+    if (vw.preCount >= 3) continue; // side-by-side code-compare slide: exempt from this warning
+    const sw = slideWeight(s);
+    if (vw.lines > sw.lines) {
+      columnWarnings.push(
+        `vertical "${slideTitle(v)}" (${vw.lines} lines) is heavier than its spine slide "${slideTitle(s)}" (${sw.lines} lines)`,
+      );
+    }
+  }
+
+  return {
+    spine: { count: spine.length, avgLines: round1(spineAvgLines), avgWords: round1(spineAvgWords) },
+    verticals: { count: verticals.length, avgLines: round1(verticalAvgLines), avgWords: round1(verticalAvgWords) },
+    spokenMinutes: {
+      spineOnly: round1(spokenMinutesFor(spineWordsTotal)),
+      spinePlusVerticals: round1(spokenMinutesFor(allWordsTotal)),
+    },
+    generalWarning,
+    columnWarnings,
+  };
+}
+
 /**
  * Analyze coverage for an already-parsed deck.
  *
@@ -62,6 +189,7 @@ export function analyzeCoverage({ talk, slides }) {
     slidesCoveringNothing,
     slidesWithNoGoal,
     percentCovered,
+    spineDepth: computeSpineDepth(slides),
   };
 }
 
@@ -107,6 +235,21 @@ export function formatReport(label, result) {
     lines.push("  clean: every prompt item covered, every outline item and slide accounted for");
   }
 
+  const sd = result.spineDepth;
+  if (sd) {
+    lines.push(
+      `  spine: ${sd.spine.count} slides, avg ${sd.spine.avgLines} lines / ${sd.spine.avgWords} words`,
+    );
+    lines.push(
+      `  verticals: ${sd.verticals.count} slides, avg ${sd.verticals.avgLines} lines / ${sd.verticals.avgWords} words`,
+    );
+    lines.push(
+      `  spoken time: spine only ~${sd.spokenMinutes.spineOnly}min, spine+verticals ~${sd.spokenMinutes.spinePlusVerticals}min`,
+    );
+    if (sd.generalWarning) lines.push(`  warning: ${sd.generalWarning}`);
+    for (const w of sd.columnWarnings) lines.push(`  warning: ${w}`);
+  }
+
   return lines.join("\n");
 }
 
@@ -121,11 +264,19 @@ export function isFailing(result) {
   return result.hasTalk && result.uncoveredPrompts.length > 0;
 }
 
+const USAGE = [
+  "usage: talk-coverage <deck.md> [...]",
+  "",
+  "Spoken-time estimate assumption (not a measurement): rendered-text word",
+  `count is multiplied by ${SPOKEN_WORD_MULTIPLIER} (on-slide word count is assumed to undercount what's`,
+  `actually said aloud), then divided by ${WORDS_PER_MINUTE} words/minute.`,
+].join("\n");
+
 function main(argv) {
   const files = argv.slice(2);
-  if (!files.length) {
-    console.error("usage: talk-coverage <deck.md> [...]");
-    return 1;
+  if (!files.length || files.includes("--help") || files.includes("-h")) {
+    console.error(USAGE);
+    return files.length ? 0 : 1;
   }
 
   let failed = 0;
