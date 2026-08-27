@@ -190,11 +190,47 @@ export function analyzeCoverage({ talk, slides }) {
     slidesWithNoGoal,
     percentCovered,
     spineDepth: computeSpineDepth(slides),
+    sections: computeSectionCoverage(talk.outline, coveredOutlineIds),
   };
 }
 
 function slideLabel(slide) {
   return slide.id ?? `pos ${slide.pos.join(",")}`;
+}
+
+/**
+ * Group outline items by `item.section` (in first-appearance order; items
+ * are contiguous within a section since the parser only changes `section`
+ * at a `#` line) and report, per section, how many of its items are covered
+ * by some slide's `covers`. Items with `section: null` (appearing before
+ * the first `#` line) are grouped under the explicit `null` section rather
+ * than dropped, so a deck with no `#` lines at all still reports.
+ *
+ * @param {object[]} outline
+ * @param {Set<string>} coveredOutlineIds
+ * @returns {{section: string|null, covered: number, total: number, uncoveredIds: string[]}[]}
+ */
+function computeSectionCoverage(outline, coveredOutlineIds) {
+  const order = [];
+  const bySection = new Map();
+  for (const item of outline) {
+    if (!bySection.has(item.section)) {
+      bySection.set(item.section, []);
+      order.push(item.section);
+    }
+    bySection.get(item.section).push(item);
+  }
+
+  return order.map((section) => {
+    const items = bySection.get(section);
+    const uncoveredIds = items.filter((i) => !coveredOutlineIds.has(i.id)).map((i) => i.id);
+    return {
+      section,
+      covered: items.length - uncoveredIds.length,
+      total: items.length,
+      uncoveredIds,
+    };
+  });
 }
 
 /**
@@ -233,6 +269,17 @@ export function formatReport(label, result) {
     !result.slidesWithNoGoal.length
   ) {
     lines.push("  clean: every prompt item covered, every outline item and slide accounted for");
+  }
+
+  if (result.sections && result.sections.length) {
+    lines.push("  sections:");
+    const width = Math.max(...result.sections.map((s) => (s.section ?? "(no section)").length));
+    for (const s of result.sections) {
+      const name = (s.section ?? "(no section)").padEnd(width);
+      let line = `    ${name}  ${s.covered}/${s.total} covered`;
+      if (s.uncoveredIds.length) line += `   <- ${s.uncoveredIds.join(", ")}`;
+      lines.push(line);
+    }
   }
 
   const sd = result.spineDepth;

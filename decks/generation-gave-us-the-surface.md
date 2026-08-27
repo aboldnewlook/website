@@ -32,34 +32,51 @@ P1  Architecture of one SDK/codegen system you own
 P2  Where language idioms did not map cleanly onto the shared spec
 P3  Where AI fits in that pipeline
 
-O1   [P1]     What OpenTDF is - policy travels with the data
-O2   [P1]     Surface area: core platform, 5 services, 1 spec, 3 SDKs
-O3   [P1]     Six or seven engineers against all of it
-O4   [P1]     Air-gapped customers and third-hand information
-O5   [P1]     Thesis: API surface plus workflow; generated client is typed transport, SDK is the opinion
-O6   [P1]     Encryption failures are silent, so the wrong sequence must be unreachable
-O7   [P1]     Without an SDK, customers hardcode strings and build their own wrapper anyway
-O8   [P1]     Contract-based development via proto
-O9   [P1]     Generate via ConnectRPC - HTTP and gRPC from one definition
-O10  [P1]     Backward compatibility enforced mechanically - Buf breaking-change detection fails the build
-O11  [P1]     On-prem means no telemetry and no upgrade control, so it must be enforced at build time
-O12  [P1]     Platform powered by the SDK, so everything aligns
-O13  [P1]     CLI powered by the SDK, to dog-food it
-O14  [P1,P3]  Abstracting the generated layer - ConnectRPC output is verbose and loses idioms, so hand-wrap it
-O15  [P3]     AI does the wrapping - Go proverbs as the style spec, linters as the feedback loop
-O16  [P2]     Go vs JS vs Java - the same encrypt in three shapes
-O17  [P2]     Our experience is not theirs - use their idioms
-O18  [P2]     Failure evidence - third parties misread the spec, then internal SDKs disagreed too
-O19  [P2]     The permutation matrix is the real unit of correctness
-O20  [P2]     The compatibility matrix runs on every merge
-O21  [P2]     A shared CLI shape abstracts the idioms away
-O22  [P2]     Divergence reveals underspecification - and the spec is what changes
-O23  [P3]     AI in building - code reviews, proto development, proto alignment
-O24  [P3]     SDK as guardrail for AI-written customer code - enums become compile errors
-O25  [P3]     Training data from 2019 cannot drift when the model works through a typed surface
-O26  [P3]     Docs as BDD - defective guides vs defective code
-O27  [P3]     A patch is a discrete module - patch library, tests, and its own AGENTS.md
-O28  [P3]     Why an agent and not a library - a stop-gap until the right architecture is affordable
+# The problem
+what-opentdf-is  [P1]     What OpenTDF is - policy travels with the data
+surface-area     [P1]     Surface area: core platform, 5 services, 3 specs (ztdf, nanotdf, binarytdf), 3 SDKs
+feature-parity   [P1,P2]  The derivatives are not 1-to-1 compatible - they agree on feature sets, so conformance is feature parity, not identical bytes
+headcount        [P1]     Six or seven engineers against all of it
+no-telemetry     [P1]     Air-gapped customers and third-hand information
+
+# The case for an SDK
+opinion                [P1]  Thesis: API surface plus workflow; generated client is typed transport, SDK is the opinion
+silent-failure          [P1]  Encryption failures are silent, so the wrong sequence must be unreachable
+they-build-one-anyway   [P1]  Without an SDK, customers hardcode strings and build their own wrapper anyway
+
+# Generation
+contract-first               [P1]     Contract-based development via proto
+connectrpc                   [P1]     Generate via ConnectRPC - HTTP and gRPC from one definition
+breaking-change-detection    [P1]     Backward compatibility enforced mechanically - Buf breaking-change detection fails the build
+build-time-enforcement       [P1]     On-prem means no telemetry and no upgrade control, so it must be enforced at build time
+platform-uses-sdk            [P1]     Platform powered by the SDK, so everything aligns
+cli-dogfoods                 [P1]     CLI powered by the SDK, to dog-food it
+wrap-the-generated-layer     [P1,P3]  Abstracting the generated layer - ConnectRPC output is verbose and loses idioms, so hand-wrap it
+
+# Idioms
+three-shapes             [P2]  Go vs JS vs Java - the same encrypt in three shapes
+their-idioms-not-ours    [P2]  Our experience is not theirs - use their idioms
+
+# Conformance
+divergence-evidence      [P2]  Failure evidence - third parties misread the spec, then internal SDKs disagreed too
+permutation-matrix       [P2]  The permutation matrix is the real unit of correctness
+runs-every-merge         [P2]  The compatibility matrix runs on every merge
+shared-cli-shape         [P2]  A shared CLI shape abstracts the idioms away
+spec-is-what-changes     [P2]  Divergence reveals underspecification - and the spec is what changes
+
+# The solution
+binarytdf                [P1]  BinaryTDF: what ztdf and nanotdf taught us, written as one unified spec that designs feature parity in rather than discovering it
+deterministic-tooling    [P1]  Built with spec-driven development and deterministic tooling - the counterweight to everything else here that leans on models
+end-state                [P1]  The end state: BinaryTDF makes the other two unnecessary
+
+# AI
+ai-does-the-wrapping                 [P3]  AI does the wrapping - Go proverbs as the style spec, linters as the feedback loop
+ai-in-building                       [P3]  AI in building - code reviews, proto development, proto alignment
+sdk-as-guardrail                     [P3]  SDK as guardrail for AI-written customer code - enums become compile errors
+typed-surface-beats-training-data    [P3]  Training data from 2019 cannot drift when the model works through a typed surface
+docs-as-bdd                          [P3]  Docs as BDD - defective guides vs defective code
+patch-as-module                      [P3]  A patch is a discrete module - patch library, tests, and its own AGENTS.md
+why-an-agent                         [P3]  Why an agent and not a library - a stop-gap until the right architecture is affordable
 ```
 
 <!-- kicker: 00 — Opening -->
@@ -81,7 +98,7 @@ Ryan Schumacher · OpenTDF Architect and Maintainer
 -->
 ---
 <!-- kicker: 01 — Scope -->
-<!-- covers: O1 -->
+<!-- covers: what-opentdf-is -->
 <!-- goal: one sentence on what OpenTDF is - policy travels with the data - and move on -->
 # Data-centric security simplified
 
@@ -137,7 +154,7 @@ saves ~20 seconds and costs the whole first act for half the room.
 ---
 <!-- down -->
 <!-- kicker: 01 — Scope -->
-<!-- covers: O2 -->
+<!-- covers: surface-area -->
 <!-- goal: show the shapes we tried before this one, so the consolidation reads as earned rather than chosen -->
 # We tried the other shapes first
 
@@ -155,7 +172,7 @@ saves ~20 seconds and costs the whole first act for half the room.
 ---
 <!-- down -->
 <!-- kicker: 01 — Scope -->
-<!-- covers: O3,O4 -->
+<!-- covers: headcount,no-telemetry -->
 <!-- goal: land the constraint the whole talk rests on - small team, and no way to see what happens next -->
 # Six engineers, and no way to watch it land
 
@@ -174,7 +191,7 @@ Something had to give. **What gave was the SDK layer.**
 
 ---
 <!-- kicker: 02 — What an SDK is -->
-<!-- covers: O5,O6 -->
+<!-- covers: opinion,silent-failure -->
 <!-- goal: separate typed transport from the opinion, and show why a silent failure makes the opinion load-bearing -->
 # An SDK is an abstraction over an API surface and a workflow
 
@@ -199,7 +216,7 @@ Something had to give. **What gave was the SDK layer.**
 ---
 <!-- down -->
 <!-- kicker: 02 — What an SDK is -->
-<!-- covers: O7 -->
+<!-- covers: they-build-one-anyway -->
 <!-- goal: show that not shipping an SDK does not avoid the problem, it distributes it -->
 # They will build one anyway
 
@@ -216,7 +233,7 @@ Something had to give. **What gave was the SDK layer.**
 ---
 <!-- down -->
 <!-- kicker: 02 — What an SDK is -->
-<!-- covers: O7 -->
+<!-- covers: they-build-one-anyway -->
 <!-- goal: state precisely what versioning buys, so it never sounds like a lever we do not have -->
 # What versioning actually buys
 
@@ -234,7 +251,7 @@ cannot see. **That lever does not exist.**
 
 ---
 <!-- kicker: 03 — Failure evidence -->
-<!-- covers: O18,O19 -->
+<!-- covers: divergence-evidence,permutation-matrix -->
 <!-- goal: prove with evidence that a prose spec underdetermines behaviour - two independent readings disagreed -->
 # Prose specs underdetermine behavior
 
@@ -265,7 +282,7 @@ of correctness.**
 
 ---
 <!-- kicker: 04 — Conformance -->
-<!-- covers: O21,O13 -->
+<!-- covers: shared-cli-shape,cli-dogfoods -->
 <!-- goal: explain why a CLI is the comparable surface: argv in, bytes out, no idioms to honour -->
 # A CLI has no idioms to honor
 
@@ -280,7 +297,7 @@ of correctness.**
 Java, Go, JavaScript. `otdfctl` is a real product CLI; the others are deliberately minimal shims. One product, two test harnesses sharing a shape.
 ---
 <!-- kicker: 04 — Conformance -->
-<!-- covers: O19,O20,O22 -->
+<!-- covers: permutation-matrix,runs-every-merge,spec-is-what-changes -->
 <!-- goal: land that divergence between implementations is evidence the spec is underspecified, and that the spec is what changes -->
 # When implementations diverge, the spec is what was wrong
 
@@ -301,7 +318,7 @@ and a matrix that holds the line.
 
 ---
 <!-- kicker: 05 — Generation -->
-<!-- covers: O8,O9 -->
+<!-- covers: contract-first,connectrpc -->
 <!-- goal: one definition yields both sides, so drift is a compile error rather than a discipline problem -->
 # One definition, both sides, in lockstep
 
@@ -315,7 +332,7 @@ and a matrix that holds the line.
 ---
 <!-- down -->
 <!-- kicker: 05 — Generation -->
-<!-- covers: O10,O11 -->
+<!-- covers: breaking-change-detection,build-time-enforcement -->
 <!-- goal: explain why on-prem forces build-time enforcement - there is no telemetry to manage deprecation with -->
 # On-prem is why it has to be mechanical
 
@@ -330,7 +347,7 @@ exposed is a yes we cannot retract, and nothing operational can take it back.
 
 ---
 <!-- kicker: 06 — Idioms -->
-<!-- covers: O17 -->
+<!-- covers: their-idioms-not-ours -->
 <!-- goal: argue that uniformity serves the maintainer and idiom serves the customer -->
 # Uniformity is a maintainer's convenience
 
@@ -342,7 +359,7 @@ exposed is a yes we cannot retract, and nothing operational can take it back.
 ---
 <!-- down -->
 <!-- kicker: 06 — Idioms -->
-<!-- covers: O16 -->
+<!-- covers: three-shapes -->
 <!-- goal: show the same encrypt in three idiomatic shapes at once, so the comparison is seen rather than remembered -->
 # The same encrypt, three times
 
@@ -396,7 +413,7 @@ sdk.createTDF(in, out, cfg);
 
 ---
 <!-- kicker: 07 — AI · techniques -->
-<!-- covers: O14,O15 -->
+<!-- covers: wrap-the-generated-layer,ai-does-the-wrapping -->
 <!-- goal: show the generated layer is raw material, and that wrapping it is where idioms come from -->
 # The generated layer is not the SDK
 
@@ -413,7 +430,7 @@ faster, not otherwise-impossible. Codegen is what made six engineers viable;
 this is what keeps it from eroding.
 ---
 <!-- kicker: 07 — AI · techniques -->
-<!-- covers: O27,O28 -->
+<!-- covers: patch-as-module,why-an-agent -->
 <!-- goal: land the patch-module pattern, and answer why an agent rather than a library -->
 # A patch is a module, and the model is the developer
 
@@ -434,7 +451,7 @@ was not the thing whose failures are silent.
 ---
 <!-- down -->
 <!-- kicker: 07 — AI · techniques -->
-<!-- covers: O23 -->
+<!-- covers: ai-in-building -->
 <!-- goal: show AI watching upstream so downstream SDK work is staged, not discovered -->
 # Watching upstream so the SDKs do not fall behind
 
@@ -459,7 +476,7 @@ generated layer is not the SDK" and can be dropped whole if questions run long.
 ---
 <!-- down -->
 <!-- kicker: 07 — AI · techniques -->
-<!-- covers: O26 -->
+<!-- covers: docs-as-bdd -->
 <!-- goal: land docs-as-executable-spec and the two-way check it produces -->
 # The quick start is a test case
 
@@ -481,7 +498,7 @@ upstream"; droppable together.
 
 ---
 <!-- kicker: 08 — AI · pitfalls -->
-<!-- covers: O24 -->
+<!-- covers: sdk-as-guardrail -->
 <!-- goal: establish that the model is good at filling typed parameters and bad at choosing the sequence -->
 # The SDK is the guardrail for AI-written integration code
 
@@ -508,7 +525,7 @@ upstream"; droppable together.
 ---
 <!-- down -->
 <!-- kicker: 08 — AI · pitfalls -->
-<!-- covers: O25 -->
+<!-- covers: typed-surface-beats-training-data -->
 <!-- goal: explain that deprecated-but-real API surface looks fine to everyone who was not there -->
 # Seven years of architecture, none of it timestamped
 
@@ -518,7 +535,7 @@ upstream"; droppable together.
 - Generated artifacts are the only trustworthy source *precisely because they're regenerated rather than recalled*
 ---
 <!-- kicker: 09 — Close -->
-<!-- covers: O11 -->
+<!-- covers: build-time-enforcement -->
 <!-- goal: close on the through-line: no visibility into the environment means every guarantee must be mechanical -->
 # We can't see into the environment. So every guarantee has to be mechanical.
 

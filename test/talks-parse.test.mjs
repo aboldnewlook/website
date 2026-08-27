@@ -678,8 +678,14 @@ O2  [P1,P2]  Conformance as ambiguity detection
     { id: "P2", text: "Where language idioms did not map onto the shared spec" },
   ]);
   assert.deepEqual(talk.outline, [
-    { id: "O1", covers: ["P1"], text: "What OpenTDF is" },
-    { id: "O2", covers: ["P1", "P2"], text: "Conformance as ambiguity detection" },
+    { id: "O1", covers: ["P1"], text: "What OpenTDF is", context: null, section: null },
+    {
+      id: "O2",
+      covers: ["P1", "P2"],
+      text: "Conformance as ambiguity detection",
+      context: null,
+      section: null,
+    },
   ]);
   assert.equal(slides.length, 1);
   assert.doesNotMatch(slides[0].html, /Architecture of one SDK|OpenTDF|TALK_ONLY/);
@@ -826,6 +832,135 @@ O1  [P1]  Again
 # One
 `),
     /duplicate outline id: O1/,
+  );
+});
+
+test("talk fence: slug ids parse, and slides may cover them", () => {
+  const { talk, slides } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+surface-area  [P1]  Core platform, 5 services, 3 formats, 3 SDKs
+\`\`\`
+
+<!-- pos: 0,0 -->
+<!-- covers: surface-area -->
+
+# One
+`);
+  assert.equal(talk.outline[0].id, "surface-area");
+  assert.deepEqual(slides[0].covers, ["surface-area"]);
+});
+
+test("talk fence: numeric ids (O12) still parse", () => {
+  const { talk } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+O12  [P1]  Old-style numeric id
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.equal(talk.outline[0].id, "O12");
+});
+
+test("talk fence: indented lines after an outline item attach as context, joined, and never rendered", () => {
+  const { talk, slides } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+surface-area  [P1]  Core platform, 5 services, 3 formats, 3 SDKs
+    Three formats, two shipped.
+    binarytdf may replace both.
+headcount     [P1]  Six engineers against all of it
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.equal(talk.outline[0].context, "Three formats, two shipped. binarytdf may replace both.");
+  assert.equal(talk.outline[1].context, null);
+  assert.doesNotMatch(slides[0].html, /Three formats|binarytdf may replace/);
+});
+
+test("talk fence: # lines start a section, and items belong to the section above them", () => {
+  const { talk } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+# The problem
+surface-area  [P1]  Core platform, 5 services, 3 formats, 3 SDKs
+headcount     [P1]  Six engineers against all of it
+
+# The case for an SDK
+opinion       [P1]  Generated client is typed transport; the SDK is the opinion
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.equal(talk.outline[0].section, "The problem");
+  assert.equal(talk.outline[1].section, "The problem");
+  assert.equal(talk.outline[2].section, "The case for an SDK");
+});
+
+test("talk fence: items before the first # get section: null", () => {
+  const { talk } = parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+no-section  [P1]  Before any section header
+
+# Named
+named-item  [P1]  After a section header
+\`\`\`
+
+<!-- pos: 0,0 -->
+
+# One
+`);
+  assert.equal(talk.outline[0].section, null);
+  assert.equal(talk.outline[1].section, "Named");
+});
+
+test("talk fence: an unknown slug in covers still throws", () => {
+  assert.throws(
+    () => parseDeck(`---
+title: Talk
+---
+
+\`\`\`talk
+P1  Something
+
+surface-area  [P1]  Core platform, 5 services, 3 formats, 3 SDKs
+\`\`\`
+
+<!-- pos: 0,0 -->
+<!-- covers: nonexistent-slug -->
+
+# One
+`),
+    /unknown outline id: nonexistent-slug/,
   );
 });
 

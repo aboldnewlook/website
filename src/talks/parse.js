@@ -48,9 +48,22 @@ const SLIDE_META = /^<!--\s*([a-z][a-z0-9_]*)\s*:\s*(.*?)\s*-->$/;
 const DOWN_MARKER = /^<!--\s*down\s*-->$/;
 const THEME_FENCE = /^```css theme\n([\s\S]*?)\n```$/m;
 const TALK_FENCE = /^```talk\n([\s\S]*?)\n```$/m;
-// Ids are opaque strings matching [A-Z][0-9]+[a-z]? (design §3): "P1a" is legal.
+// Prompt ids are opaque strings matching [A-Z][0-9]+[a-z]?: "P1a" is legal.
 const PROMPT_LINE = /^(P[0-9]+[a-z]?)\s+(.+)$/;
-const OUTLINE_LINE = /^(O[0-9]+[a-z]?)\s*\[\s*([^\]]*?)\s*\]\s*(.+)$/;
+// Outline ids are slugs, [a-z][a-z0-9-]*, but the id rule is loosened rather
+// than dual-moded: the old positional form ("O12", "O1a") is also a legal
+// slug shape, so a deck authored before slugs existed keeps parsing exactly
+// as it did. One grammar, one regex.
+const OUTLINE_LINE = /^([A-Za-z][A-Za-z0-9-]*)\s*\[\s*([^\]]*?)\s*\]\s*(.+)$/;
+// A `#` line inside the talk fence opens a section; every outline item below
+// it (until the next `#`) belongs to that section. Items above the first `#`
+// belong to no section (section: null).
+const SECTION_LINE = /^#\s*(.+)$/;
+// A line indented 4+ spaces or a tab, checked against the RAW (untrimmed)
+// line so indentation survives: it is free-prose context for the outline
+// item immediately above it, joined onto that item's `context` and never
+// rendered anywhere.
+const CONTEXT_LINE = /^(?: {4,}|\t)(.*)$/;
 const SLIDE_SEP = /^---$/m;
 const POS = /^(-?\d+)\s*,\s*(-?\d+)$/;
 // "note" and "notes" are both accepted, colon optional, per the owner's
@@ -222,10 +235,28 @@ function parseTalkBlock(content) {
   const outline = [];
   const promptIds = new Set();
   const outlineIds = new Set();
+  let section = null;
+  let lastItem = null;
 
   for (const raw of content.split("\n")) {
     const line = raw.trim();
     if (!line) continue;
+
+    // Context lines are checked first, against the raw (untrimmed) line, so
+    // their content - however it reads once trimmed - is never re-parsed as
+    // a section/item/prompt line.
+    const cm = CONTEXT_LINE.exec(raw);
+    if (cm && lastItem) {
+      lastItem.context = lastItem.context ? `${lastItem.context} ${line}` : line;
+      continue;
+    }
+
+    const sm = SECTION_LINE.exec(line);
+    if (sm) {
+      section = sm[1].trim();
+      lastItem = null;
+      continue;
+    }
 
     const om = OUTLINE_LINE.exec(line);
     if (om) {
@@ -236,7 +267,9 @@ function parseTalkBlock(content) {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      outline.push({ id, covers, text: oText.trim() });
+      const item = { id, covers, text: oText.trim(), context: null, section };
+      outline.push(item);
+      lastItem = item;
       continue;
     }
 
@@ -246,6 +279,7 @@ function parseTalkBlock(content) {
       if (promptIds.has(id)) throw new Error(`talk fence: duplicate prompt id: ${id}`);
       promptIds.add(id);
       prompt.push({ id, text: pText.trim() });
+      lastItem = null;
       continue;
     }
 

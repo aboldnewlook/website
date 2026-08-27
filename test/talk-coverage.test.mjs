@@ -290,6 +290,45 @@ Paragraph two with several more words in it to add even more weight.
 Paragraph three with several more words in it to add even more weight still.
 `;
 
+const SECTIONED = `---
+title: Sectioned
+---
+
+\`\`\`talk
+P1  First prompt
+P2  Second prompt
+
+# The problem
+surface-area    [P1]  First point
+headcount       [P1]  Second point
+feature-parity  [P1]  Third point
+
+# The case for an SDK
+opinion         [P2]  Fourth point
+silent-failure  [P2]  Fifth point
+
+# The solution
+binarytdf              [P1]  Sixth point
+deterministic-tooling  [P1]  Seventh point
+end-state              [P1]  Eighth point
+extra-item             [P1]  Ninth point
+\`\`\`
+
+<!-- pos: 0,0 -->
+<!-- covers: surface-area,headcount,feature-parity -->
+<!-- goal: g -->
+
+# One
+
+---
+
+<!-- pos: 1,0 -->
+<!-- covers: opinion,silent-failure -->
+<!-- goal: g -->
+
+# Two
+`;
+
 // --- analyzeCoverage / formatReport / isFailing --------------------------------
 
 test("a fully-covered deck reports 100% and is not failing", () => {
@@ -422,4 +461,70 @@ test("density warnings never affect exit code: an uncovered prompt still exits n
   const dir = fixtureDir();
   const file = writeDeck(dir, "gap-density.md", UNCOVERED_AND_UPSIDE_DOWN);
   assert.throws(() => execFileSync(process.execPath, [BIN, file], { encoding: "utf8" }));
+});
+
+// --- per-section coverage --------------------------------------------------
+
+test("per-section coverage groups outline items by section and reports N/M covered, naming uncovered items by slug", () => {
+  const parsed = parseDeck(SECTIONED);
+  const result = analyzeCoverage(parsed);
+
+  assert.deepEqual(result.sections, [
+    { section: "The problem", covered: 3, total: 3, uncoveredIds: [] },
+    { section: "The case for an SDK", covered: 2, total: 2, uncoveredIds: [] },
+    {
+      section: "The solution",
+      covered: 0,
+      total: 4,
+      uncoveredIds: ["binarytdf", "deterministic-tooling", "end-state", "extra-item"],
+    },
+  ]);
+
+  // isFailing is still governed only by uncovered *prompt* items, never by
+  // section coverage: SECTIONED has no uncovered prompt items even though
+  // "The solution" section is fully uncovered.
+  assert.equal(isFailing(result), false);
+
+  const report = formatReport("fixture", result);
+  assert.match(report, /sections:/);
+  assert.match(report, /The problem\s+3\/3 covered/);
+  assert.match(report, /The case for an SDK\s+2\/2 covered/);
+  assert.match(
+    report,
+    /The solution\s+0\/4 covered\s+<- binarytdf, deterministic-tooling, end-state, extra-item/,
+  );
+});
+
+const NO_SECTION = `---
+title: No section
+---
+
+\`\`\`talk
+P1  First prompt
+
+item-one  [P1]  An item before any # line
+
+# Named section
+item-two  [P1]  An item inside a section
+\`\`\`
+
+<!-- pos: 0,0 -->
+<!-- covers: item-one,item-two -->
+<!-- goal: g -->
+
+# One
+`;
+
+test("outline items before the first # line group under an explicit (no section) heading, not silently omitted", () => {
+  const parsed = parseDeck(NO_SECTION);
+  const result = analyzeCoverage(parsed);
+
+  assert.deepEqual(result.sections, [
+    { section: null, covered: 1, total: 1, uncoveredIds: [] },
+    { section: "Named section", covered: 1, total: 1, uncoveredIds: [] },
+  ]);
+
+  const report = formatReport("fixture", result);
+  assert.match(report, /\(no section\)\s+1\/1 covered/);
+  assert.match(report, /Named section\s+1\/1 covered/);
 });
