@@ -300,7 +300,10 @@ Constraints declared once in the proto, generated into every SDK.
 - Reduced surface area; fewer discipline problems and more generated artifact.
 
 <!-- notes:
-The contract validation is really beneficial because we can ensure that the validation happens prior to it making it into the hitting the server. We also have validation on server and it's actually the same validation. 
+- the value is that validation runs before a request is ever made, not after
+  it reaches the server
+- the server validates too, and the bit worth landing is that it is the same
+  validation on both sides - not two implementations that happen to agree
 -->
 
 ---
@@ -320,7 +323,11 @@ You are the only one who sees all three.
 - They pay back in **support tickets not filed, time-to-first-deploy, and customers who come back**
 
 <!-- notes:
-I just want to say that this is a really important slide to me. It is something I've seen a lot, which is developers building SDKs tend to build for themselves, not for customers. And that is a real problem. That's not product engineering. That is... That's not customer service. 
+- slow down here - this is the one I care most about in the whole talk
+- the pattern I keep seeing is teams building the SDK for themselves rather
+  than for the person who has to use it
+- name it as a product engineering failure, not a difference of taste: you
+  are shipping your own convenience to a customer
 -->
 
 ---
@@ -384,6 +391,7 @@ sdk.createTDF(in, out, cfg);
 -->
 
 ---
+<!-- down -->
 <!-- kicker: 05 — Conformance -->
 <!-- covers: shared-cli-shape,cli-dogfoods -->
 <!-- goal: land that language idioms diverge while Unix idioms converged, which is what makes a CLI comparable -->
@@ -407,22 +415,30 @@ echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
   wrong in at least two of them
 -->
 ---
+<!-- down -->
 <!-- kicker: 04 — Idioms -->
 <!-- covers: wrap-the-generated-layer,ai-does-the-wrapping -->
 <!-- goal: show the generated layer is raw material, and that wrapping it is where idioms come from -->
-# The generated layer is not the SDK
+# The generated layer is not purely the SDK
 
-- ConnectRPC gives us a correct client. It is also **verbose, and it has no
-  idioms** — it is the shape of the proto, not the shape of the language.
-- So we hand-wrap it. That wrapping is where Go looks like Go.
-- **The style spec is the Go proverbs.** Not a document we wrote — one the
-  language community already agreed on, and that a model has actually read.
-- **The linters are the feedback loop.** The model writes, the linter judges,
-  the model corrects. Nobody hand-reviews a diff to enforce house style.
+- ConnectRPC gives us a correct client. It is also **verbose, it is the shape of the proto**.
+- So we wrap it so Go looks like Go.
+- **The linters are the feedback loop.** Nobody hand-reviews a diff to enforce house style.
 
-Generation gave us the surface. This is where the opinion gets added back —
-faster, not otherwise-impossible. Codegen is what made six engineers viable;
-this is what keeps it from eroding.
+<!-- notes:
+- ConnectRPC generation streamlines the SDK work and gets us most of the way
+  to an idiomatic shape in each language
+- where it falls down is the edges - enums are the clearest case, and what
+  comes out is not idiomatic Go
+- that was still the starting point; it worked, and we shipped on it
+- so we started writing shims over the generated layer, to make the parts
+  that felt wrong feel like the language again
+- the linter checks style and closes the feedback loop; agents write the
+  shims for the bits that do not feel idiomatic
+- be honest about the trade: every shim is more surface area for a defect
+  to live in
+-->
+
 ---
 <!-- kicker: 05 — Conformance -->
 <!-- covers: divergence-evidence,permutation-matrix -->
