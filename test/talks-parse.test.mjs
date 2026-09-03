@@ -1202,3 +1202,51 @@ test("the real deck's components parse", () => {
   assert.match(all, /<div class="slide-stats" data-columns="4"/);
   assert.match(all, /<p class="callout-source">API maxim<\/p>/);
 });
+
+// --- syntax highlighting ------------------------------------------------------
+
+test("code fences are highlighted, and the escaping survives it", () => {
+  const { slides } = parseDeck(
+    withBody("# H\n\n```ts\nconst a = 'x'; // note\n```"),
+  );
+  const html = slides[0].html;
+  assert.match(html, /<span class="tok-keyword">const<\/span>/);
+  assert.match(html, /<span class="tok-comment">\/\/ note<\/span>/);
+  assert.match(html, /<span class="tok-string">&#39;x&#39;<\/span>/);
+});
+
+test("highlighting never splits an HTML entity or unescapes markup", () => {
+  const { slides } = parseDeck(
+    withBody("# H\n\n```ts\nif (a < b && c > d) { x('<script>') }\n```"),
+  );
+  const html = slides[0].html;
+  assert.doesNotMatch(html, /<script>/);
+  // every entity is intact - no stray span boundary inside one
+  for (const frag of html.match(/&(?:amp|lt|gt|quot|#39);/g) ?? []) {
+    assert.ok(/^&(?:amp|lt|gt|quot|#39);$/.test(frag));
+  }
+  assert.match(html, /&lt;/);
+  assert.match(html, /&amp;/);
+});
+
+test("a fence with no language is left alone", () => {
+  const { slides } = parseDeck(withBody("# H\n\n```\nconst a = 1\n```"));
+  assert.doesNotMatch(slides[0].html, /tok-/);
+});
+
+test("keywords inside a string stay a string", () => {
+  const { slides } = parseDeck(withBody('# H\n\n```go\nx := "return func"\n```'));
+  const html = slides[0].html;
+  assert.match(html, /<span class="tok-string">&quot;return func&quot;<\/span>/);
+  assert.doesNotMatch(html, /tok-keyword">return/);
+});
+
+test("the real deck's three-language compare slide is highlighted", () => {
+  const { slides } = parseDeck(deck("generation-gave-us-the-surface"));
+  const s = slides.find((x) => /three times/.test(x.html));
+  assert.ok(s, "compare slide found");
+  assert.match(s.html, /language-ts/);
+  assert.match(s.html, /language-go/);
+  assert.match(s.html, /language-java/);
+  assert.match(s.html, /tok-keyword/);
+});

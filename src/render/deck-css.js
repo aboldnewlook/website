@@ -82,6 +82,16 @@ export const DECK_CSS = `
   --h2-slide: 2.9em;
   --measure-slide: none;
   --measure-h2-slide: none;
+  /* Syntax tokens, emitted by src/render/highlight.js. Defaults are derived
+     from --ink and --accent so an unthemed deck is coherent without picking
+     hues that fight its palette; a deck that wants a real code theme sets
+     these six directly. */
+  --tok-comment: color-mix(in srgb, var(--ink) 40%, transparent);
+  --tok-string:  color-mix(in srgb, var(--accent) 55%, var(--ink));
+  --tok-keyword: var(--accent);
+  --tok-number:  color-mix(in srgb, var(--accent) 75%, var(--ink));
+  --tok-fn:      color-mix(in srgb, var(--ink) 88%, var(--accent));
+  --tok-type:    color-mix(in srgb, var(--ink) 62%, var(--accent));
   --card-shadow: 0 1px 3px rgba(0,0,0,.10), 0 14px 38px rgba(0,0,0,.10);
   --fly: 600ms;
   --ease: cubic-bezier(.32,.72,.24,1);
@@ -272,6 +282,12 @@ export const DECK_CSS = `
   line-height: 1.4;
 }
 .slide-body pre code { background: none; padding: 0; font-size: 1em; }
+.slide-body .tok-comment { color: var(--tok-comment); font-style: italic; }
+.slide-body .tok-string  { color: var(--tok-string); }
+.slide-body .tok-keyword { color: var(--tok-keyword); font-weight: 600; }
+.slide-body .tok-number  { color: var(--tok-number); }
+.slide-body .tok-fn      { color: var(--tok-fn); }
+.slide-body .tok-type    { color: var(--tok-type); }
 .slide-body img, .slide-body svg, .slide-body video {
   max-inline-size: 100%;
   block-size: auto;
@@ -545,16 +561,47 @@ export const DECK_CSS = `
   min-block-size: 0;
   overflow: auto;
 }
+/* Compared samples WRAP rather than scroll. overflow:auto is dead content on
+   a projected slide -- nobody scrolls a code block mid-talk, so an
+   overflowing line is simply a line the room never sees. Wrapping trades
+   the horizontal overflow for vertical space, which a compare slide has in
+   abundance, and that trade is what buys the larger type below.
+
+   align-self:start stops each sample stretching down its whole grid track,
+   which left three tall empty boxes under three short samples. */
+.deck--player .slide-body:has(> pre:nth-of-type(2)) > pre {
+  white-space: pre-wrap;
+  /* break-word, not anywhere: "anywhere" breaks mid-token and orphans a
+     lone comma or half an identifier onto its own line, which reads worse
+     than the overflow it fixed. break-word prefers a space and only splits
+     a token that cannot fit at all. */
+  overflow-wrap: break-word;
+  overflow: hidden;
+  align-self: start;
+}
+/* Hanging indent for wrapped lines. Without it a wrapped continuation
+   restarts at column 0 and reads as a new statement, which destroys the
+   indentation -- and on a compare slide the indentation IS the shape being
+   compared. Negative text-indent on the first line plus equal padding pushes
+   every wrapped line in instead. pre-wrap still preserves the sample's own
+   leading spaces, so a nested line keeps its own level and hangs from it. */
+.deck--player .slide-body:has(> pre:nth-of-type(2)) > pre code {
+  display: block;
+  padding-inline-start: 2.2ch;
+  text-indent: -2.2ch;
+}
 .deck--player .slide-body:has(> pre:nth-of-type(3)) > pre {
-  /* Three columns leaves each sample roughly a third of the card's
-     content width -- narrower than the .8em pre text this deck otherwise
-     uses can fit without wrapping. Still an em off the card's own
-     font-size (--type-scale * --card-w), the one root every slide length
-     is required to track (spec 8.1) -- not a new absolute size. */
-  font-size: .5em;
+  /* Measured on the real 3-up slide at 1600x900: the column is 403px, and
+     at the old .5em (12px) the longest line fit EXACTLY, which is why it was
+     that small. With wrapping the width constraint is gone and the binding
+     limit becomes height, so this can go to ~18px -- half again as large --
+     with the body still fitting the card. Still an em off the card's own
+     font-size (--type-scale * --card-w), the one root every slide length is
+     required to track (spec 8.1), not a new absolute size. */
+  font-size: .72em;
 }
 .deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > pre {
-  font-size: .68em;
+  font-size: .85em;
 }
 .deck--player .slide-body:has(> pre:nth-of-type(3)) > p:nth-of-type(1),
 .deck--player .slide-body:has(> pre:nth-of-type(2)):not(:has(> pre:nth-of-type(3))) > p:nth-of-type(1) {

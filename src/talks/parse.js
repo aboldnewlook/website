@@ -32,6 +32,7 @@
 
 import { renderMarkdown } from "../blog/markdown.js";
 import { escapeHtml } from "../format.js";
+import { highlightBlocks } from "../render/highlight.js";
 
 const DECK_KEYS = new Set(["title", "date", "venue", "summary", "fonts"]);
 const SLIDE_KEYS = new Set(["pos", "kicker", "id", "covers", "goal"]);
@@ -381,7 +382,7 @@ function splitSlides(text, talk) {
       pos,
       kicker: fields.kicker ?? null,
       id: fields.id ?? null,
-      html: renderBody(stripComments(body), label),
+      html: highlightBlocks(renderBody(stripComments(body), label)),
       notes: rawNotes === null ? null : renderMarkdown(rawNotes),
       covers,
       goal: fields.goal ?? null,
