@@ -35,6 +35,8 @@ P3  Where AI fits in that pipeline
 # The problem
 what-opentdf-is  [P1]     What OpenTDF is - policy travels with the data
 surface-area     [P1]     Surface area: core platform, 5 services, 3 specs (ztdf, nanotdf, binarytdf), 3 SDKs
+    Two shipped - ztdf and nanotdf. binarytdf is the unified one, in development.
+    Say "two specs" like it costs something: the matrix is 3 languages x 2 formats.
 feature-parity   [P1,P2]  The derivatives are not 1-to-1 compatible - they agree on feature sets, so conformance is feature parity, not identical bytes
 headcount        [P1]     Six or seven engineers against all of it
 no-telemetry     [P1]     Air-gapped customers and third-hand information
@@ -48,26 +50,25 @@ they-build-one-anyway   [P1]  Without an SDK, customers hardcode strings and bui
 contract-first               [P1]     Contract-based development via proto
 connectrpc                   [P1]     Generate via ConnectRPC - HTTP and gRPC from one definition
 breaking-change-detection    [P1]     Backward compatibility enforced mechanically - Buf breaking-change detection fails the build
-build-time-enforcement       [P1]     On-prem means no telemetry and no upgrade control, so it must be enforced at build time
+generative-validation        [P1]     Client-side validation generated across SDKs
+build-time-enforcement       [P1]     Code running in the customer's environment gives no signals, so compatibility has to be enforced at build time
+    On-prem and air-gapped are our instance of it. The condition is general:
+    hosted means you can watch adoption, customer-run means you cannot.
 platform-uses-sdk            [P1]     Platform powered by the SDK, so everything aligns
 cli-dogfoods                 [P1]     CLI powered by the SDK, to dog-food it
-wrap-the-generated-layer     [P1,P3]  Abstracting the generated layer - ConnectRPC output is verbose and loses idioms, so hand-wrap it
 
 # Idioms
+wrap-the-generated-layer     [P2,P3]   Abstracting the generated layer - ConnectRPC output is verbose and loses idioms, so hand-wrap it
 three-shapes             [P2]  Go vs JS vs Java - the same encrypt in three shapes
+shared-cli-shape         [P2]  A shared CLI shape abstracts the idioms away
 their-idioms-not-ours    [P2]  Our experience is not theirs - use their idioms
 
 # Conformance
-divergence-evidence      [P2]  Failure evidence - third parties misread the spec, then internal SDKs disagreed too
-permutation-matrix       [P2]  The permutation matrix is the real unit of correctness
-runs-every-merge         [P2]  The compatibility matrix runs on every merge
-shared-cli-shape         [P2]  A shared CLI shape abstracts the idioms away
-spec-is-what-changes     [P2]  Divergence reveals underspecification - and the spec is what changes
+divergence-evidence      [P1]  Failure evidence - third parties misread the spec, then internal SDKs disagreed too
+permutation-matrix       [P1]  The permutation matrix is the real unit of correctness
+runs-every-merge         [P1]  The compatibility matrix runs on every merge
+spec-is-what-changes     [P1]  Divergence reveals underspecification - and the spec is what changes
 
-# The solution
-binarytdf                [P1]  BinaryTDF: what ztdf and nanotdf taught us, written as one unified spec that designs feature parity in rather than discovering it
-deterministic-tooling    [P1]  Built with spec-driven development and deterministic tooling - the counterweight to everything else here that leans on models
-end-state                [P1]  The end state: BinaryTDF makes the other two unnecessary
 
 # AI
 ai-does-the-wrapping                 [P3]  AI does the wrapping - Go proverbs as the style spec, linters as the feedback loop
@@ -85,9 +86,7 @@ why-an-agent                         [P3]  Why an agent and not a library - a st
 
 A case study in OpenTDF's developer experience.
 
-<footer align="left">
-Ryan Schumacher · OpenTDF Architect and Maintainer
-</footer>
+*Ryan Schumacher · OpenTDF Architect and Maintainer*
 
 <!-- note
 
@@ -144,13 +143,6 @@ An open format where policy and keys travel with the data.
 
 -->
 
-<!-- REVIEW · KEEP (looks cuttable, is not)
-Thinnest content slide in the deck at 30 words, so it will look like an easy
-cut. It is the only slide that says what OpenTDF actually is, and the
-non-specialist reviewer needed it to follow anything after it. Cutting this
-saves ~20 seconds and costs the whole first act for half the room.
--->
-
 ---
 <!-- down -->
 <!-- kicker: 01 — Scope -->
@@ -158,15 +150,14 @@ saves ~20 seconds and costs the whole first act for half the room.
 <!-- goal: show the shapes we tried before this one, so the consolidation reads as earned rather than chosen -->
 # We tried the other shapes first
 
-- **11+ microservices** with a C++ core wrapped per language
-- Every language paid an interop tax **and still owed conformance on top**
-- Consolidated into one modular monorepo, native SDKs per language
+- **11+ microservices** led to one idiom across languages
+- SDK powered by C++ core **wrapped per language**
+- Web SDK **developed and maintained separately**
 
 <!-- notes:
-- wrapper tax: every SDK inherited C++ build problems, FFI edges and platform
-  quirks — and interop with other wrappers still had to be proven separately
-- "native" is the point of the consolidation: each language stands alone,
-  which is what makes idioms possible later
+- multiple microservices led to different restful shapes
+- SDK unified, but also dropped language specific idioms
+- Web SDK required more conformance work to make sure it aligned
 -->
 
 ---
@@ -176,17 +167,17 @@ saves ~20 seconds and costs the whole first act for half the room.
 <!-- goal: land the constraint the whole talk rests on - small team, and no way to see what happens next -->
 # Six engineers, and no way to watch it land
 
-Six engineers against all of it: services, three SDKs, the CLI, the format,
-the crypto.
+Six engineers against all of it: services, three SDKs, the CLI, the format, the crypto.
 
-And we cannot watch any of it land. Customers run air-gapped; what comes back
-is third-hand, months later, filtered through someone else's incident.
+Customers run air-gapped; feedback loop is third-hand, months later, filtered through someone
+else's incident.
 
 Something had to give. **What gave was the SDK layer.**
 
 <!-- notes:
-- this is the premise the close pays off — say it plainly, do not rush it
-- the admission line is the setup for the thesis slide; deliver it flat, no hedging
+- discuss the surface area challenge
+- Cross compatibility flows are error prone on a larger scale and have long feedback loops
+- discuss what gave and lead into why I pushed for ConnectRPC
 -->
 
 ---
@@ -195,22 +186,24 @@ Something had to give. **What gave was the SDK layer.**
 <!-- goal: separate typed transport from the opinion, and show why a silent failure makes the opinion load-bearing -->
 # An SDK is an abstraction over an API surface and a workflow
 
-- A generated client is **typed transport**. The SDK is **the opinion** — the order of operations, the things it won't let you get wrong.
-- Here the workflow *is* the value: token acquisition, resolving which **key access servers (KAS)** you are authorized against, choosing which one to wrap with, binding policy to payload.
-- **Encryption failures are silent.** A hand-rolled integration produces a TDF that looks fine and either won't open later or protects nothing.
+- A generated client is **typed transport**. The SDK is **the opinion**.
 - The SDK exists so the wrong sequence **isn't reachable**.
+  - token acquisition and client configuration against the platform
+  - resolving the key access servers (KAS) you are authorized against
+  - choosing which one to wrap with and setting the binding strategy
+- **Encryption failures are silent.** A TDF that looks fine, but won't decrypt or embeds vulnerabilities is a failure.
 - Developer **perception of the product comes through DX**, if they question the SDK they question the product.
 
 <!-- note
 
 - APIs are untyped, prone to typos, must be referenced in docs
   - AI can easily hallucinate; feedback loop requires round-trip
-  - Customers tend to write bespoke abstractions which are just SDKs
 - APIs tend to expose full scope of capability; leaves room for interpretation; wrong order or missing step can lead unexpected behavior which is challenging to debug
 - Workflow workflows can't always be generated, but generated code offsets the maintenance surface area
-- Cross compatibility flows are error prone on a larger scale and have long feedback loops
+  - token acquisition requires custom code; encode through common libraries; push config through platform
+  - visible one-offs can lead to rearchitecture decisions; KAS brokering
+  - sometimes it has to be developed per language; except for some flows like FIPS
 - Non-technical leadership leans on their technical staff to help them make calls
-- Developers will build abstraction if the abstraction is done correctly and solves their problem they will rely on it; increase adoption; increase exploration of other features; increase stickiness
 
 -->
 ---
@@ -222,11 +215,13 @@ Something had to give. **What gave was the SDK layer.**
 
 - Without one, your contract ends up **encoded as literals inside every customer application**
 - Competent developers build their own; **once per customer, in private, with no conformance suite behind it**
-- Typed enums are the mechanism: values discoverable through the compiler rather than memorized
+- Typed enums are the mechanism: values **discoverable through the compiler** rather than memorized
 
 <!-- notes:
 - contract embedded in the customer environment as literals; no package-manager
   notification, so you cannot force or even facilitate an upgrade
+  - new endpoints can lead to performance improvements, cost reduction, better experience
+- customers see the same problem with they engage with an API
 - compile-time error is a tight feedback loop — for humans and for models
 -->
 
@@ -238,115 +233,78 @@ Something had to give. **What gave was the SDK layer.**
 # What versioning actually buys
 
 The SDK is the one surface where versioning can be **expressed**: a change
-arrives discoverable and typed, as a compile error, for whoever eventually
-recompiles.
+arrives discoverable and typed, as a compile error, or deprecation notice.
 
-It does not schedule adoption. It does not reach into an environment we
-cannot see. **That lever does not exist.**
+- It does not schedule adoption.
+- It does not reach into an environment we cannot see.
 
 <!-- notes:
-- say this carefully — it is the slide that stops the on-prem slide later
-  from sounding like a contradiction
 -->
 
 ---
-<!-- kicker: 03 — Failure evidence -->
-<!-- covers: divergence-evidence,permutation-matrix -->
-<!-- goal: prove with evidence that a prose spec underdetermines behaviour - two independent readings disagreed -->
-# Prose specs underdetermine behavior
-
-**Third parties** implemented our open spec and misread it. Then, internally,
-the same thing — and the matrix is where it showed up:
-
-- One implementation **hex-encoded** a field. The others did not.
-- Two **stripped the KAS URI**. One left it.
-- In nanotdf, the policy got implemented in **a variety of shapes**.
-
-None of these are bugs in the ordinary sense. Every one of them is a place two
-careful engineers read the same sentence and built different things.
-
-The permutation matrix — not any single SDK's test suite — **is the real unit
-of correctness.**
-
-<!-- notes:
-- liberal in what it accepts, strict in what it produces — say this out loud,
-  it is the line people remember
-- an SDK, unlike a loose collection of libraries, can absorb reality the spec
-  cannot: out-of-spec third-party TDFs are already in the wild and cannot be
-  retroactively fixed
-- the workarounds get quarantined in one place, which is what keeps the spec
-  itself clean
-- the matrix is where all three of these showed up — none were caught by any
-  single SDK's own test suite
--->
-
----
-<!-- kicker: 04 — Conformance -->
-<!-- covers: shared-cli-shape,cli-dogfoods -->
-<!-- goal: explain why a CLI is the comparable surface: argv in, bytes out, no idioms to honour -->
-# A CLI has no idioms to honor
-
-- The tension: SDKs must be idiomatic, therefore non-uniform, **therefore hard to compare mechanically**
-- argv in, bytes out, exit code. Each language gets a thin CLI with an identical shape.
-- The conformance matrix becomes a matrix over **processes**, not language bindings
-- The harness needs a shell — not knowledge of Java versus Go
-- Every pair tested — encrypt in Java, decrypt in Go — across TDF versions, with **zero language-specific test code**
-
-***
-
-Java, Go, JavaScript. `otdfctl` is a real product CLI; the others are deliberately minimal shims. One product, two test harnesses sharing a shape.
----
-<!-- kicker: 04 — Conformance -->
-<!-- covers: permutation-matrix,runs-every-merge,spec-is-what-changes -->
-<!-- goal: land that divergence between implementations is evidence the spec is underspecified, and that the spec is what changes -->
-# When implementations diverge, the spec is what was wrong
-
-- The honest limit first: these three SDKs are not independent readings. Six
-  engineers, one team, one set of design conversations. **A shared misreading
-  can stay green**, and no amount of voting fixes that.
-- What the matrix does give you is sharper anyway: when implementations
-  disagree, **it is almost never that one is buggy.** It is that the sentence
-  they both read did not decide the question.
-- **`displayName`.** The spec did not say how to derive it, so every
-  implementation derived its own. The matrix surfaced the divergence, and the
-  fix was not to pick a winner — **it was to amend the spec.**
-- Conformance stops being a regression gate and becomes **a continuous
-  ambiguity detector on our own written standard.**
-
-It runs on every merge. That is the difference between a matrix that exists
-and a matrix that holds the line.
-
----
-<!-- kicker: 05 — Generation -->
+<!-- kicker: 03 — Generation -->
 <!-- covers: contract-first,connectrpc -->
 <!-- goal: one definition yields both sides, so drift is a compile error rather than a discipline problem -->
 # One definition, both sides, in lockstep
 
-- **ConnectRPC** generates a server interface and a working client from one
-  protobuf definition, and serves the same API over plain HTTP *and* gRPC.
-- **Why it, over OpenAPI-first:** OpenAPI would have locked us to HTTP. Adding gRPC later means a second protocol shape and a second source of truth.
-- Contracts encapsulated as protobuf — there is always an inspectable contract
-- One definition yields an unimplemented server interface and a working client. **Drift between them isn't a discipline problem, it's a compile error.**
-- Contract-driven development: align on contracts first; SDK developers **regenerate rather than hand-build surface**
-- Per-language surface labor collapsed. `This is why three SDKs is survivable with six.`
+- **ConnectRPC** generates a server and client code from one contract, serves over plain HTTP *and* gRPC.
+- **Why it, over OpenAPI-first:** OpenAPI locked us in one shape HTTP. SDK generation required libraries per language.
+- Proto generates unimplemented server interface and a working client. **Drift is a compile error.**
+- Per-language surface labor collapsed. **Team focused on what can't be generated.**
+
+<!-- notes:
+- HTTP is frequently conflated with REST; protobuf is conflated with gRPC
+- SDK generation fit modular binary shape; gRPC or HTTP within service mesh; bits within platform
+- OpenAPI implementation looked different in each language; protobuf did this for us
+- 
+-->
+
 ---
 <!-- down -->
-<!-- kicker: 05 — Generation -->
+<!-- kicker: 03 — Generation -->
 <!-- covers: breaking-change-detection,build-time-enforcement -->
-<!-- goal: explain why on-prem forces build-time enforcement - there is no telemetry to manage deprecation with -->
-# On-prem is why it has to be mechanical
+<!-- goal: land the general condition - code you cannot observe forces build-time enforcement - with on-prem as our instance of it -->
+# Their environment gives you no signals
 
 | | |
 |---|---|
-| **SaaS** | Deprecation is an observability problem. Watch traffic, find the last caller, sunset. |
-| **On-prem** | No telemetry. No control over upgrade timing. Compatibility can't be managed operationally at all. |
-| **So** | Enforce it at build time — **Buf** breaking-change detection against a baseline, failing the build. The only lever available when you can't see your users. |
+| **Runs in your environment** | Deprecation is an observability problem. Watch traffic, find the last caller, sunset it. |
+| **Runs in theirs** | No telemetry, no upgrade control, no idea who is still on the old path. |
+| **So** | Enforce it at build time — **Buf** breaking-change detection against a baseline, failing the build. |
+
+On-prem and air-gapped makes this worse. It is the same problem for anything that
+ships into a customer's environment and stops reporting back.
 
 This is where *no is temporary, yes is forever* comes due: every surface we
 exposed is a yes we cannot retract, and nothing operational can take it back.
 
 ---
-<!-- kicker: 06 — Idioms -->
+<!-- down -->
+<!-- kicker: 03 — Generation -->
+<!-- covers: generative-validation -->
+<!-- goal: show that one contract also yields validation, so bad input dies in the caller rather than on the wire -->
+# The contract validates too
+
+Constraints declared once in the proto, generated into every SDK — so the
+same rule is enforced in Go, Java and JavaScript without three
+implementations of it.
+
+- Bad input fails **in the caller**, before a request exists.
+- On-prem that matters twice over: **a request never sent is one we never
+  had to observe** — and observation is the thing we do not have.
+- One more thing that stops being a discipline problem and starts being a
+  generated artifact.
+
+<!-- REVIEW · CONFIRM THE MECHANISM
+Written from the outline item ("client-side validation generated across
+SDKs") plus the structural argument. Your prep mentioned protovalidate as
+"a separate tool, runtime validation" — if that is what this is, the slide
+should say so by name, and "runtime" may contradict "before a request
+exists". Correct the mechanism before this goes in front of anyone.
+-->
+
+---
+<!-- kicker: 04 — Idioms -->
 <!-- covers: their-idioms-not-ours -->
 <!-- goal: argue that uniformity serves the maintainer and idiom serves the customer -->
 # Uniformity is a maintainer's convenience
@@ -358,7 +316,7 @@ exposed is a yes we cannot retract, and nothing operational can take it back.
 - They pay back in **support tickets not filed, time-to-first-deploy, and customers who come back**
 ---
 <!-- down -->
-<!-- kicker: 06 — Idioms -->
+<!-- kicker: 04 — Idioms -->
 <!-- covers: three-shapes -->
 <!-- goal: show the same encrypt in three idiomatic shapes at once, so the comparison is seen rather than remembered -->
 # The same encrypt, three times
@@ -412,7 +370,22 @@ sdk.createTDF(in, out, cfg);
 -->
 
 ---
-<!-- kicker: 07 — AI · techniques -->
+<!-- kicker: 05 — Conformance -->
+<!-- covers: shared-cli-shape,cli-dogfoods -->
+<!-- goal: land that language idioms diverge while Unix idioms converged, which is what makes a CLI comparable -->
+# Language idioms diverge. Unix idioms converged.
+
+- The tension: SDKs must be idiomatic, therefore **non-uniform**, therefore hard to compare mechanically.
+- A CLI is not idiom-free. Flags versus positionals, `-f` versus `--flag`, piping, uniform output — **Unix settled all of it**, and settled it the same way on every platform.
+- What is left genuinely arbitrary is small: noun→verb or verb→noun. Pick one, and every language can hit it.
+- So the matrix becomes a matrix over **processes**, not language bindings. The harness needs a shell, not knowledge of Java versus Go.
+- Every pair tested — encrypt in Java, decrypt in Go — across formats, with **zero language-specific test code**
+
+***
+
+Java, Go, JavaScript. `otdfctl` is a real product CLI; the others are deliberately minimal shims. One product, two test harnesses sharing a shape.
+---
+<!-- kicker: 04 — Idioms -->
 <!-- covers: wrap-the-generated-layer,ai-does-the-wrapping -->
 <!-- goal: show the generated layer is raw material, and that wrapping it is where idioms come from -->
 # The generated layer is not the SDK
@@ -429,7 +402,94 @@ Generation gave us the surface. This is where the opinion gets added back —
 faster, not otherwise-impossible. Codegen is what made six engineers viable;
 this is what keeps it from eroding.
 ---
-<!-- kicker: 07 — AI · techniques -->
+<!-- kicker: 05 — Conformance -->
+<!-- covers: divergence-evidence,permutation-matrix -->
+<!-- goal: prove with evidence that a prose spec underdetermines behaviour - two independent readings disagreed -->
+# Prose specs underdetermine behavior
+
+**Third parties** implemented our open spec and misread it. Then, internally,
+the same thing — and the matrix is where it showed up:
+
+- One implementation **hex-encoded** a field. The others did not.
+- Two **stripped the KAS URI**. One left it.
+- In nanotdf, the policy got implemented in **a variety of shapes**.
+
+None of these are bugs in the ordinary sense. Every one of them is a place two
+careful engineers read the same sentence and built different things.
+
+The permutation matrix — not any single SDK's test suite — **is the real unit
+of correctness.**
+
+<!-- notes:
+- liberal in what it accepts, strict in what it produces — say this out loud,
+  it is the line people remember
+- an SDK, unlike a loose collection of libraries, can absorb reality the spec
+  cannot: out-of-spec third-party TDFs are already in the wild and cannot be
+  retroactively fixed
+- the workarounds get quarantined in one place, which is what keeps the spec
+  itself clean
+- the matrix is where all three of these showed up — none were caught by any
+  single SDK's own test suite
+-->
+
+---
+<!-- kicker: 05 — Conformance -->
+<!-- covers: permutation-matrix,runs-every-merge,spec-is-what-changes -->
+<!-- goal: land that divergence between implementations is evidence the spec is underspecified, and that the spec is what changes -->
+# When implementations diverge, the spec is what was wrong
+
+- The honest limit first: these three SDKs are not independent readings. Six
+  engineers, one team, one set of design conversations. **A shared misreading
+  can stay green**, and no amount of voting fixes that.
+- What the matrix does give you is sharper anyway: when implementations
+  disagree, **it is almost never that one is buggy.** It is that the sentence
+  they both read did not decide the question.
+- **`displayName`.** The spec did not say how to derive it, so every
+  implementation derived its own. The matrix surfaced the divergence, and the
+  fix was not to pick a winner — **it was to amend the spec.**
+- Conformance stops being a regression gate and becomes **a continuous
+  ambiguity detector on our own written standard.**
+
+<!-- notes:
+- if asked "so what changed?" — displayName was one amendment; the larger
+  answer is binarytdf
+- ztdf and nanotdf taught us where the model was wrong: the derivatives are
+  not 1-to-1 compatible, they agree on feature sets, and every ambiguity we
+  found came out of that gap
+- binarytdf is one unified spec that designs feature parity in rather than
+  discovering it. built spec-first with deterministic tooling — deliberately
+  NOT with models, which is the counterweight to everything in the AI section
+- there is a reality where it makes the other two unnecessary
+- do not volunteer this: it is in development, and a question about outcomes
+  has no good answer yet
+-->
+
+<!-- REVIEW · RYAN TO FILL — deterministic-tooling
+The note above says binarytdf is "built spec-first with deterministic tooling —
+deliberately NOT with models" and then stops. That sentence is doing a lot of
+work and is currently unsupported.
+
+Worth filling in because it is probably the best answer you have to "where
+would you NOT use AI" — a boundary you drew, not a capability you claimed,
+which is the opposite of the pattern the technical reviewer flagged across
+every other AI slide.
+
+What is missing:
+- what the deterministic tooling actually IS. Name it. Generators, validators,
+  a schema compiler, property tests? Right now "deterministic tooling" could
+  mean anything.
+- why deterministic for the spec specifically, when models are fine for
+  wrapping, patching, upstream watching and docs. What property does a spec
+  have that those do not?
+- whether this is a principle you hold or a decision you made once for
+  binarytdf. Those answer a follow-up very differently.
+-->
+
+It runs on every merge. That is the difference between a matrix that exists
+and a matrix that holds the line.
+
+---
+<!-- kicker: 06 — AI · techniques -->
 <!-- covers: patch-as-module,why-an-agent -->
 <!-- goal: land the patch-module pattern, and answer why an agent rather than a library -->
 # A patch is a module, and the model is the developer
@@ -450,7 +510,7 @@ survived upstream moving — and it earned a lower bar than the SDKs because it
 was not the thing whose failures are silent.
 ---
 <!-- down -->
-<!-- kicker: 07 — AI · techniques -->
+<!-- kicker: 06 — AI · techniques -->
 <!-- covers: ai-in-building -->
 <!-- goal: show AI watching upstream so downstream SDK work is staged, not discovered -->
 # Watching upstream so the SDKs do not fall behind
@@ -475,7 +535,7 @@ generated layer is not the SDK" and can be dropped whole if questions run long.
 
 ---
 <!-- down -->
-<!-- kicker: 07 — AI · techniques -->
+<!-- kicker: 06 — AI · techniques -->
 <!-- covers: docs-as-bdd -->
 <!-- goal: land docs-as-executable-spec and the two-way check it produces -->
 # The quick start is a test case
@@ -497,7 +557,7 @@ upstream"; droppable together.
 -->
 
 ---
-<!-- kicker: 08 — AI · pitfalls -->
+<!-- kicker: 07 — AI · pitfalls -->
 <!-- covers: sdk-as-guardrail -->
 <!-- goal: establish that the model is good at filling typed parameters and bad at choosing the sequence -->
 # The SDK is the guardrail for AI-written integration code
@@ -524,7 +584,7 @@ upstream"; droppable together.
 
 ---
 <!-- down -->
-<!-- kicker: 08 — AI · pitfalls -->
+<!-- kicker: 07 — AI · pitfalls -->
 <!-- covers: typed-surface-beats-training-data -->
 <!-- goal: explain that deprecated-but-real API surface looks fine to everyone who was not there -->
 # Seven years of architecture, none of it timestamped
@@ -534,7 +594,7 @@ upstream"; droppable together.
 - Deprecated-but-real API surface **looks fine to everyone** who's none the wiser.
 - Generated artifacts are the only trustworthy source *precisely because they're regenerated rather than recalled*
 ---
-<!-- kicker: 09 — Close -->
+<!-- kicker: 08 — Close -->
 <!-- covers: build-time-enforcement -->
 <!-- goal: close on the through-line: no visibility into the environment means every guarantee must be mechanical -->
 # We can't see into the environment. So every guarantee has to be mechanical.
