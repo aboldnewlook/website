@@ -118,34 +118,14 @@ No is temporary, yes is forever.
 </slide-callout>
 
 <!-- note
-
-- OpenTDF is about data-centric security and ABAC and TDF
-  - TDF, trusted data format
-    - Open format for encrypted data bundled with key material
-    - Tagged with attributes
-    - ZTDF and NanoTDF
-      - Nano exists because full TDF is too heavy for constrained
-        payloads (IoT, small messages) — a size/capability trade-off
-      - two specs doubles the conformance surface: the matrix is
-        3 languages × 2 formats, not just languages pairwise
-      - say "two specs" like it costs something, because it does
-  - ABAC, attribute based access control
-    - Access control based on mapping between attributes
-    - data attrs : subj attrs
-  - DCS, data centric security
-    - security at the data layer
-- we started off with a core platform
-  - consider logging, audit, authz, cache, modular binary, service runner, etc
-- built policy service made of multiple primitives and relationships (6 prim of various complexity)
-- the maxim, if asked: everything an API exposes is a yes you can
-  never take back — on-prem you can't even see who depends on it.
-  An SDK is the mechanism for saying no (narrow surface, opinionated
-  workflow) while keeping the noes temporary — you can widen an SDK
-  later, cheaply. Callback when Buf breaking-change detection comes
-  up: that tooling polices the yeses already said.
-- keep TDF to ~one sentence spoken; if Greg wants format depth
-  he'll ask
-
+- TDF: open format, encrypted data + key material, attribute-tagged
+- ABAC: data attrs : subject attrs · DCS: security at the data layer
+- nano exists for constrained payloads - a size/capability trade
+- two specs doubles conformance: 3 languages x 2 formats
+- core platform first; policy service, 6 primitives
+- keep TDF to one sentence - let Greg ask for format depth
+- if asked, the maxim: every API yes is permanent, an SDK keeps the noes
+  temporary (callback at Buf breaking-change detection)
 -->
 
 ---
@@ -200,16 +180,12 @@ Something had to give. **What gave was the SDK layer.**
 - Developer **perception of the product comes through DX**, if they question the SDK they question the product.
 
 <!-- note
-
-- APIs are untyped, prone to typos, must be referenced in docs
-  - AI can easily hallucinate; feedback loop requires round-trip
-- APIs tend to expose full scope of capability; leaves room for interpretation; wrong order or missing step can lead unexpected behavior which is challenging to debug
-- Workflow workflows can't always be generated, but generated code offsets the maintenance surface area
-  - token acquisition requires custom code; encode through common libraries; push config through platform
-  - visible one-offs can lead to rearchitecture decisions; KAS brokering
-  - sometimes it has to be developed per language; except for some flows like FIPS
-- Non-technical leadership leans on their technical staff to help them make calls
-
+- APIs are untyped and doc-dependent - easy to hallucinate against
+- 7 years of training data, no past/present sense, SaaS is not on-prem
+- full capability exposed: wrong order or missing step, hard to debug
+- workflow rarely generates; generated code offsets the maintenance
+- token acquisition is custom · KAS brokering is the visible one-off
+- non-technical leadership leans on their staff for the call
 -->
 ---
 <!-- down -->
@@ -223,11 +199,10 @@ Something had to give. **What gave was the SDK layer.**
 - Typed enums are the mechanism: values **discoverable through the compiler** rather than memorized
 
 <!-- notes:
-- contract embedded in the customer environment as literals; no package-manager
-  notification, so you cannot force or even facilitate an upgrade
-  - new endpoints can lead to performance improvements, cost reduction, better experience
-- customers see the same problem with they engage with an API
-- compile-time error is a tight feedback loop — for humans and for models
+- contract embedded as literals in the customer environment
+- no package-manager notification, so you cannot force or facilitate upgrade
+- new endpoints mean performance, cost, experience they never get
+- compile-time error is a tight loop - for humans and for models
 -->
 
 ---
@@ -323,11 +298,9 @@ You are the only one who sees all three.
 - They pay back in **support tickets not filed, time-to-first-deploy, and customers who come back**
 
 <!-- notes:
-- slow down here - this is the one I care most about in the whole talk
-- the pattern I keep seeing is teams building the SDK for themselves rather
-  than for the person who has to use it
-- name it as a product engineering failure, not a difference of taste: you
-  are shipping your own convenience to a customer
+- slow down - this is the one I care most about
+- teams build the SDK for themselves, not for the person using it
+- name it: a product engineering failure, not a difference of taste
 -->
 
 ---
@@ -383,11 +356,10 @@ sdk.createTDF(in, out, cfg);
 </slide-compare>
 
 <!-- notes:
-- JS: composition is native, build the object, pass it at the call site
-- Go: variadic options, extend before the call or inside it, developer chooses
-- Java: verbose by nature, wants a builder, and that expectation is legitimate
-- identical semantics, three right answers — a uniform API would have been
-  wrong in at least two of them
+- JS: composition is native - build the object, pass it at the call site
+- Go: variadic options, extend before the call or inside it
+- Java: verbose by nature, wants a builder - a legitimate expectation
+- three right answers; a uniform API is wrong in at least two
 -->
 
 ---
@@ -408,11 +380,10 @@ echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
 ```
 
 <!-- notes:
-- JS: composition is native, build the object, pass it at the call site
-- Go: variadic options, extend before the call or inside it, developer chooses
-- Java: verbose by nature, wants a builder, and that expectation is legitimate
-- identical semantics, three right answers — a uniform API would have been
-  wrong in at least two of them
+- the three shapes were all correct - that is the point
+- a CLI has no idioms to honour: argv in, bytes out
+- so it is the one surface where all three compare directly
+- and we dog-food it - the CLI runs on the SDK
 -->
 ---
 <!-- down -->
@@ -426,17 +397,12 @@ echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
 - **The linters are the feedback loop.** Nobody hand-reviews a diff to enforce house style.
 
 <!-- notes:
-- ConnectRPC generation streamlines the SDK work and gets us most of the way
-  to an idiomatic shape in each language
-- where it falls down is the edges - enums are the clearest case, and what
-  comes out is not idiomatic Go
-- that was still the starting point; it worked, and we shipped on it
-- so we started writing shims over the generated layer, to make the parts
-  that felt wrong feel like the language again
-- the linter checks style and closes the feedback loop; agents write the
-  shims for the bits that do not feel idiomatic
-- be honest about the trade: every shim is more surface area for a defect
-  to live in
+- ConnectRPC gets us most of the way to an idiomatic shape
+- it breaks down at the edges - enums are the clearest case
+- that was still the starting point, and it shipped
+- so: shims over the generated layer, written by agents
+- the linter checks style and closes the loop
+- the trade: every shim is more surface for a defect
 -->
 
 ---
@@ -446,7 +412,7 @@ echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
 # Prose specs underdetermine behavior
 
 **Third parties** implemented our open spec and misread it. Then, internally,
-the same thing — and the matrix is where it showed up:
+the same thing. The matrix is where it showed up:
 
 - One implementation **hex-encoded** a field. The others did not.
 - Two **stripped the KAS URI**. One left it.
@@ -459,15 +425,10 @@ The permutation matrix — not any single SDK's test suite — **is the real uni
 of correctness.**
 
 <!-- notes:
-- liberal in what it accepts, strict in what it produces — say this out loud,
-  it is the line people remember
-- an SDK, unlike a loose collection of libraries, can absorb reality the spec
-  cannot: out-of-spec third-party TDFs are already in the wild and cannot be
-  retroactively fixed
-- the workarounds get quarantined in one place, which is what keeps the spec
-  itself clean
-- the matrix is where all three of these showed up — none were caught by any
-  single SDK's own test suite
+- liberal in what it accepts, strict in what it produces
+- out-of-spec third-party TDFs are already in the wild, unfixable
+- an SDK absorbs that; the workarounds quarantine in one place
+- all three showed up in the matrix - none in any single SDK's tests
 -->
 
 ---
@@ -476,55 +437,23 @@ of correctness.**
 <!-- goal: land that divergence between implementations is evidence the spec is underspecified, and that the spec is what changes -->
 # When implementations diverge, the spec is what was wrong
 
-- The honest limit first: these three SDKs are not independent readings. Six
-  engineers, one team, one set of design conversations. **A shared misreading
-  can stay green**, and no amount of voting fixes that.
 - What the matrix does give you is sharper anyway: when implementations
-  disagree, **it is almost never that one is buggy.** It is that the sentence
-  they both read did not decide the question.
+  disagree, **it was almost never that one is buggy.**
 - **`displayName`.** The spec did not say how to derive it, so every
   implementation derived its own. The matrix surfaced the divergence, and the
-  fix was not to pick a winner — **it was to amend the spec.**
-- Conformance stops being a regression gate and becomes **a continuous
-  ambiguity detector on our own written standard.**
+   **fix was to amend the spec.**
+- Conformance stops being a regression gate and becomes
+  **a continuous ambiguity detector on our own written standard.**
 
 <!-- notes:
-- if asked "so what changed?" — displayName was one amendment; the larger
-  answer is binarytdf
-- ztdf and nanotdf taught us where the model was wrong: the derivatives are
-  not 1-to-1 compatible, they agree on feature sets, and every ambiguity we
-  found came out of that gap
-- binarytdf is one unified spec that designs feature parity in rather than
-  discovering it. built spec-first with deterministic tooling — deliberately
-  NOT with models, which is the counterweight to everything in the AI section
-- there is a reality where it makes the other two unnecessary
-- do not volunteer this: it is in development, and a question about outcomes
-  has no good answer yet
+- if asked what changed: displayName was one amendment, the real answer is binarytdf
+- ztdf/nanotdf showed the model was wrong - derivatives agree on features, not bytes
+- binarytdf designs parity in rather than discovering it
+- spec-first, deterministic tooling, deliberately not models - the counterweight
+  to the AI section
+- do NOT volunteer it: in development, no good answer on outcomes yet
 -->
 
-<!-- REVIEW · RYAN TO FILL — deterministic-tooling
-The note above says binarytdf is "built spec-first with deterministic tooling —
-deliberately NOT with models" and then stops. That sentence is doing a lot of
-work and is currently unsupported.
-
-Worth filling in because it is probably the best answer you have to "where
-would you NOT use AI" — a boundary you drew, not a capability you claimed,
-which is the opposite of the pattern the technical reviewer flagged across
-every other AI slide.
-
-What is missing:
-- what the deterministic tooling actually IS. Name it. Generators, validators,
-  a schema compiler, property tests? Right now "deterministic tooling" could
-  mean anything.
-- why deterministic for the spec specifically, when models are fine for
-  wrapping, patching, upstream watching and docs. What property does a spec
-  have that those do not?
-- whether this is a principle you hold or a decision you made once for
-  binarytdf. Those answer a follow-up very differently.
--->
-
-It runs on every merge. That is the difference between a matrix that exists
-and a matrix that holds the line.
 
 ---
 <!-- kicker: 06 — AI · techniques -->
@@ -532,13 +461,15 @@ and a matrix that holds the line.
 <!-- goal: land the patch-module pattern, and answer why an agent rather than a library -->
 # A patch is a module, and the model is the developer
 
-**Scope first, because it matters:** this is an *adjacent* implementation, not
-the OpenTDF SDKs. It does not run the conformance matrix. It was temporary.
+<slide-callout tone="note">
 
-The patch is not a diff on a branch. It is a **discrete module**: the patch
-library, its tests, and an `AGENTS.md` saying what it is for and when it
-applies. When upstream moves, a patch skill applies it again — **an agent reads
-the description and does the work**, with the tests as the floor.
+Adjacent implementation of the OpenTDF SDK.
+
+</slide-callout>
+
+- The patch is not a diff on a branch.
+- It is a **discrete module**: the patch library, its tests, and a markdown for the agent.
+- When upstream moves, a patch skill applies it again and tests drive the feedback loop.
 
 <slide-callout tone="note">
 
@@ -546,10 +477,8 @@ Why an agent and not a library?
 
 </slide-callout>
 
-Because you do not always get to apply the right architecture at the moment you
-need it, least of all around code generation. This was an honest stop-gap that
-survived upstream moving — and it earned a lower bar than the SDKs because it
-was not the thing whose failures are silent.
+- Libraries don't define the hook surface or sequence.
+- Agents apply the library in the right sequence even when hook points don't exist.
 ---
 <!-- down -->
 <!-- kicker: 06 — AI · techniques -->
@@ -558,22 +487,15 @@ was not the thing whose failures are silent.
 # Watching upstream so the SDKs do not fall behind
 
 Six engineers built OpenTDF. Virtru has sixty, and the platform now underpins
-the whole product — so the protos move without us.
+the whole product.
 
-- An agent watches proto diffs and **stages the downstream SDK work** before
-  anyone notices the drift.
-- The same agent does the unglamorous alignment: making one endpoint's surface
-  look like its neighbour's, so the SDK reads as one thing.
+- Humans driving agents implement features faster than one SDK team can process
+- Agents watch for drift, realign where possible or alert where not
 
-The failure mode this replaces is finding out at release.
+The failure modes this replaces:
 
-<!-- REVIEW · NEEDS AN INSTANCE
-Described as a capability, never as something that happened. The deep-technical
-reviewer flagged this pattern across every AI slide. One dated example — a
-proto change the agent staged before anyone noticed — turns this from a
-mechanism into evidence. It is also optional depth: this column hangs off "The
-generated layer is not the SDK" and can be dropped whole if questions run long.
--->
+- Customers acting as QA
+- Customers resorting to APIs
 
 ---
 <!-- down -->
@@ -590,12 +512,8 @@ It is a **two-way check**: if the agent cannot follow the docs to a working
 integration, either the docs lie or the SDK regressed — and you learn which
 before a customer does.
 
-<!-- REVIEW · NEEDS AN INSTANCE
-Has the docs-as-test check ever actually caught a stale guide or a regression?
-If yes, name it and this becomes the strongest slide in the techniques column.
-If it has not fired yet, say so plainly — "we just stood this up" is more
-credible than implied results. Optional depth, same column as "Watching
-upstream"; droppable together.
+<!-- note:
+- this has caught hallucinations introduced by AI
 -->
 
 ---
@@ -605,23 +523,17 @@ upstream"; droppable together.
 # The SDK is the guardrail for AI-written integration code
 
 - **Strong:** producing plausible integration code fast, filling typed parameters, working from a contract in front of it
-- **Weak:** knowing which of four plausible sequences is correct. More context doesn't fix it — **the correct sequence isn't written anywhere in the API surface.** It lives in the workflow opinion.
-- Without an SDK you're asking a model to reconstruct your protocol from endpoints. With one, its job shrinks to **filling typed parameters** — the part it's reliably good at.
+- **Weak:** knowing which of four plausible sequences is correct. More context doesn't fix it since **the correct sequence isn't written anywhere in the API surface.**
+- Without an SDK you're asking a model to reconstruct your protocol from endpoints. With one, its job shrinks to **filling typed parameters** the part it's reliably good at.
 - Every constraint pushed into the type system is a check at build time instead of a bug that ships
 
 <!-- notes:
-- the compile-loop point, verbally — worth 30 seconds if the room is technical:
-  - a type checker reports EVERY wrong argument at once; an endpoint rejects on
-    the first thing it hits, so an agent iterates serially, one request and one
-    context window per attempt
-  - an SDK gives errors BEFORE side effects. a failed call may already have
-    created data, consumed a token, or half-written state. compile errors are
-    free to be wrong.
-  - docstrings and types are context the model gets without paying to discover it
-  - verbose server errors cost bandwidth in environments where the customer pays
-    for both
-- if asked for evidence here, be honest: this is reasoning about how models
-  work, not an incident we logged
+- 30s of this only if the room is technical
+- type checker flags every wrong arg at once; an endpoint fails on the first,
+  so the agent iterates serially - one request, one context window each
+- SDK errors land BEFORE side effects; a failed call may already have written
+- docstrings and types are free context · verbose errors cost their bandwidth
+- if asked for evidence: reasoning about how models work, not a logged incident
 -->
 
 ---
