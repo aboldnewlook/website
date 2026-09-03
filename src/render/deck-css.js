@@ -87,11 +87,17 @@ export const DECK_CSS = `
      hues that fight its palette; a deck that wants a real code theme sets
      these six directly. */
   --tok-comment: color-mix(in srgb, var(--ink) 40%, transparent);
-  --tok-string:  color-mix(in srgb, var(--accent) 55%, var(--ink));
+  --tok-string:  color-mix(in srgb, var(--accent) 40%, var(--ink));
   --tok-keyword: var(--accent);
-  --tok-number:  color-mix(in srgb, var(--accent) 75%, var(--ink));
-  --tok-fn:      color-mix(in srgb, var(--ink) 88%, var(--accent));
-  --tok-type:    color-mix(in srgb, var(--ink) 62%, var(--accent));
+  --tok-number:  color-mix(in srgb, var(--accent) 52%, var(--ink));
+  /* Call sites carry the most meaning on a compare slide -- the shape being
+     pointed at is which methods get called and how -- so --tok-fn is the
+     second most vibrant token after keywords. It was 12% accent, which read
+     as plain body text. Types sit deliberately BELOW it now so the two stay
+     told apart by saturation rather than needing a second hue the deck
+     palette does not have. */
+  --tok-fn:      color-mix(in srgb, var(--accent) 70%, var(--ink));
+  --tok-type:    color-mix(in srgb, var(--accent) 28%, var(--ink));
   --card-shadow: 0 1px 3px rgba(0,0,0,.10), 0 14px 38px rgba(0,0,0,.10);
   --fly: 600ms;
   --ease: cubic-bezier(.32,.72,.24,1);
