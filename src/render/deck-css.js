@@ -48,15 +48,25 @@ export const DECK_CSS = `
      --type-scale * --h2 of card width. Measures are in ch, which scales with
      the type, so the line length is fixed in characters at any card size.
 
-     All four were swept against every slide of a real 22-slide deck rather
-     than reasoned out, because type scale and measure trade against each
-     other: a tighter measure wraps more lines, which costs the height a
+     --type-scale was swept against every slide of a real 22-slide deck
+     rather than reasoned out, because type scale and measure trade against
+     each other: a tighter measure wraps more lines, which costs the height a
      larger type needs. At .019/54ch the four densest slides overflowed the
-     card. At .0175/72ch nothing overflows, the densest slide sits at 91% of
-     the body box, the text column fills 85% of the card's content width,
-     the heading lands at 5.1% of card width and body text at 1.75%.
-     Tightening the measure to 66ch pushes the densest slide back to 96%,
-     which is no headroom for the next deck. */
+     card. At .0175/72ch nothing overflowed, and the densest slide sat at 91%
+     of the body box.
+
+     The measures are now "none" -- the cap is gone and the body fills the
+     card. A capped column parked the content against one edge with a dead
+     gutter beside it, and centring the column was no better. This does NOT
+     put the sweep's invariant at risk: the sweep was guarding vertical
+     overflow, and a wider measure wraps FEWER lines, so removing the cap
+     moves the densest slide further below 91%, not above it. The number to
+     watch when retuning is --type-scale, which is unchanged at .0175.
+
+     What it does cost is line length: on a wide card the body is now a
+     ~100-character measure, well past the 45-75 typographic norm. That is
+     the accepted trade for filling the slide. A deck that disagrees sets
+     --measure-slide itself. */
   /* Reading mode is the primary mode (D1), so the plain tokens carry its
      document values and the player re-points them at the --*-slide pair
      below. Both halves stay themeable: a deck sets --h2 to retune the
@@ -70,8 +80,8 @@ export const DECK_CSS = `
 
   --type-scale: .0175;
   --h2-slide: 2.9em;
-  --measure-slide: 72ch;
-  --measure-h2-slide: 20ch;
+  --measure-slide: none;
+  --measure-h2-slide: none;
   --card-shadow: 0 1px 3px rgba(0,0,0,.10), 0 14px 38px rgba(0,0,0,.10);
   --fly: 600ms;
   --ease: cubic-bezier(.32,.72,.24,1);
@@ -186,7 +196,7 @@ export const DECK_CSS = `
 .slide-body > :last-child { margin-block-end: 0; }
 
 .slide-body h2 {
-  margin: 0 auto .5em;
+  margin: 0 0 .5em;
   max-inline-size: var(--measure-h2);
   font-family: var(--serif);
   font-size: var(--h2);
@@ -212,17 +222,17 @@ export const DECK_CSS = `
 }
 .slide-body p { margin: 0 0 .75em; text-wrap: pretty; }
 .slide-body ul, .slide-body ol { margin: 0 0 .75em; padding-inline-start: 1.3em; }
-/* Without this the body runs the full width of a very wide card, which is a
-   100-character line. Tables, code and figures are exempt: they are meant to
-   span.
+/* The hook that caps prose to --measure. Both --measure-slide and
+   --measure-h2-slide are now "none" (see the token block), so in stock decks
+   this resolves to no cap and the body fills the card -- which is the
+   intent: a capped column left the slide's content stacked against one edge
+   with a dead gutter down the right, and centring it read no better.
 
-   margin-inline:auto centres the capped column instead of letting it hug
-   the left edge, which left the whole body stacked against one side with a
-   dead gutter down the right. Text stays left-aligned inside the box; only
-   the box moves. In reading mode this is inert -- --measure is "none"
-   there, so the block is already full width and auto margins compute to 0 --
-   which keeps the change player-only without needing a .deck--player
-   scope (D2).
+   The rule is kept rather than deleted because --measure stays a themeable
+   token: a deck that wants a tighter column sets --measure-slide and gets
+   the cap back without touching this file. Tables, code and figures are
+   deliberately outside the selector list either way -- they are meant to
+   span.
 
    NOTE: no backticks below line 30. The whole stylesheet is a JS template
    literal, so a single backtick in a CSS comment ends the string and the
@@ -233,16 +243,13 @@ export const DECK_CSS = `
 .slide-body > ol,
 .slide-body > blockquote,
 .slide-body > h3,
-.slide-body > h4 { max-inline-size: var(--measure); margin-inline: auto; }
+.slide-body > h4 { max-inline-size: var(--measure); }
 .slide-body li { margin-block-end: .35em; }
 .slide-body li::marker { color: var(--accent); }
 .slide-body a { color: var(--accent); text-underline-offset: .18em; }
 .slide-body strong { font-weight: 700; }
 .slide-body blockquote {
-  /* auto inline, not 0: this rule sits after the --measure rule above, at
-     equal specificity, so its shorthand would otherwise re-pin the centred
-     block back to the left. */
-  margin: 0 auto .75em;
+  margin: 0 0 .75em;
   padding-inline-start: 1em;
   border-inline-start: .16em solid var(--accent);
   color: var(--muted);
@@ -417,10 +424,10 @@ export const DECK_CSS = `
   column-gap: 1.8em;
   row-gap: .35em;
 }
-/* h2 always spans the full row. --measure-h2-slide (20ch) is sized for a
-   single-column display heading; a heading pinned across two or three
-   columns needs the width back or it wraps hard against its own measure
-   well before the grid track does. */
+/* h2 always spans the full row. Redundant while --measure-h2-slide is
+   "none", but kept: a deck that re-caps the heading via that token would
+   otherwise have it wrap against its own measure well before the grid
+   track does. */
 .deck--player .slide-body:has(> pre:nth-of-type(2)) > h2 {
   grid-column: 1 / -1;
   grid-row: 1;
