@@ -372,11 +372,14 @@ sdk.createTDF(in, out, cfg);
 - The tension: SDKs must be idiomatic, therefore **non-uniform**, therefore hard to compare mechanically.
 - A CLI is not idiom-free. **Unix settled all of it**.
 - What is left is an opinion: noun→verb or verb→noun.
-- BDD encoded as a matrix of shims with shared interfaces run with BAT.
+- BDD encoded as a matrix of shims with shared interfaces, run with **bats**.
 
 ```sh
-otdfctl --list policy attributes list | jq 
-echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
+# one shape, asserted: filter the field, diff against what we expect
+otdfctl policy attributes list --json | jq -r '.[].fqn' | diff -u expected/attrs.txt -
+
+# the matrix: encrypt with one shim, decrypt with another
+echo "hello world" | "$enc" encrypt | "$dec" decrypt | diff -u <(echo "hello world") -
 ```
 
 <!-- notes:
@@ -384,6 +387,8 @@ echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
 - a CLI has no idioms to honour: argv in, bytes out
 - so it is the one surface where all three compare directly
 - and we dog-food it - the CLI runs on the SDK
+- the assertion is diff, not grep: grep passes on a superset
+- $enc / $dec iterate the shims - that loop IS the matrix
 -->
 ---
 <!-- down -->
