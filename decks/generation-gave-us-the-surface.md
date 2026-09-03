@@ -457,8 +457,8 @@ of correctness.**
 
 ---
 <!-- kicker: 06 — AI · techniques -->
-<!-- covers: patch-as-module,why-an-agent -->
-<!-- goal: land the patch-module pattern, and answer why an agent rather than a library -->
+<!-- covers: patch-as-module -->
+<!-- goal: land the patch-module pattern; why-an-agent is answered verbally, see notes -->
 # A patch is a module, and the model is the developer
 
 <slide-callout tone="note">
@@ -471,14 +471,15 @@ Adjacent implementation of the OpenTDF SDK.
 - It is a **discrete module**: the patch library, its tests, and a markdown for the agent.
 - When upstream moves, a patch skill applies it again and tests drive the feedback loop.
 
-<slide-callout tone="note">
 
-Why an agent and not a library?
-
-</slide-callout>
-
-- Libraries don't define the hook surface or sequence.
-- Agents apply the library in the right sequence even when hook points don't exist.
+<!-- notes:
+- scope it: adjacent implementation, not the OpenTDF SDKs, never ran the matrix
+- the module is the unit: patch library, tests, AGENTS.md
+- why an agent, not a library (cut from the slide, say it): a library does not
+  define the hook surface or the sequence; an agent applies it in the right
+  order even where the hook points do not exist
+- be honest - a stop-gap that survived upstream moving
+-->
 ---
 <!-- down -->
 <!-- kicker: 06 — AI · techniques -->
@@ -497,6 +498,13 @@ The failure modes this replaces:
 - Customers acting as QA
 - Customers resorting to APIs
 
+<!-- notes:
+- six built it; Virtru has sixty, and the platform now underpins the product
+- the asymmetry is the point - upstream ships faster than one SDK team absorbs
+- agents watch for drift: realign where they can, alert where they cannot
+- the failure this replaces is the customer finding it first
+-->
+
 ---
 <!-- down -->
 <!-- kicker: 06 — AI · techniques -->
@@ -504,13 +512,13 @@ The failure modes this replaces:
 <!-- goal: land docs-as-executable-spec and the two-way check it produces -->
 # The quick start is a test case
 
-Run a model against the quick start and the help text, and treat the
-documentation as the spec it claims to be. BDD with markdown instead of feature
-files, and an agent instead of step definitions.
-
-It is a **two-way check**: if the agent cannot follow the docs to a working
-integration, either the docs lie or the SDK regressed — and you learn which
-before a customer does.
+- Run a model against the quick start and the help text, and treat the
+  documentation as **the spec it claims to be**.
+- BDD with **markdown instead of feature files**, and an agent instead of step
+  definitions.
+- It is a **two-way check**: if the agent cannot follow the docs to a working
+  integration, either the docs lie or the SDK regressed.
+- You learn which **before a customer does**.
 
 <!-- note:
 - this has caught hallucinations introduced by AI
@@ -547,14 +555,28 @@ before a customer does.
 - It generates confidently against a shape we deprecated years ago, and the output looks plausible **because it was correct once.**
 - Deprecated-but-real API surface **looks fine to everyone** who's none the wiser.
 - Generated artifacts are the only trustworthy source *precisely because they're regenerated rather than recalled*
+
+<!-- notes:
+- public since 2019 - weights carry no sense of which data is fresher
+- the trap: the output looks plausible because it WAS correct once
+- deprecated-but-real is the dangerous kind - nobody in the room can tell
+- regenerated, not recalled, is why the generated artifact is the safe source
+-->
 ---
 <!-- kicker: 08 — Close -->
-<!-- covers: build-time-enforcement -->
-<!-- goal: close on the through-line: no visibility into the environment means every guarantee must be mechanical -->
+<!-- covers: opinion,contract-first,build-time-enforcement,typed-surface-beats-training-data -->
+<!-- goal: close on the through-line, and re-land all three prompt items - why an SDK, what generation bought, where AI fits -->
 # We can't see into the environment. So every guarantee has to be mechanical.
 
 | | |
 |---|---|
-| **No telemetry** | Compile-time checks instead of runtime observation. |
-| **No upgrade control** | Breaking-change detection against a baseline. |
-| **No visibility into their models** | A typed SDK carrying the installed version's shape. |
+| **Why an SDK** | No telemetry, no upgrade control. The wrong sequence has to be **unreachable**, not discouraged. |
+| **Generation** | One definition drives both sides, and a breaking change fails **our build** instead of their deploy. |
+| **AI** | The typed surface is the guardrail — the model works against the **installed shape**, regenerated rather than recalled. |
+
+<!-- notes:
+- the through-line: no visibility means every guarantee has to be mechanical
+- read it down the left - the three answers, in the order they were argued
+- callback to 1,2: six engineers and no way to watch it land
+- no new material here, and stop talking after the last row
+-->
