@@ -103,14 +103,19 @@ A case study in OpenTDF's developer experience.
 
 An open format where policy and keys travel with the data.
 
-<!-- data blocks -->
+<slide-stats>
+
 | 1 | 2 | 3 | 5 |
 |---|---|---|---|
 | platform | specs | sdks | services |
-<!-- data blocks -->
 
-> No is temporary, yes is forever.
-> - API maxim
+</slide-stats>
+
+<slide-callout tone="quote" source="API maxim">
+
+No is temporary, yes is forever.
+
+</slide-callout>
 
 <!-- note
 
@@ -239,6 +244,7 @@ arrives discoverable and typed, as a compile error, or deprecation notice.
 - It does not reach into an environment we cannot see.
 
 <!-- notes:
+- buf can detect breaking changes
 -->
 
 ---
@@ -256,7 +262,6 @@ arrives discoverable and typed, as a compile error, or deprecation notice.
 - HTTP is frequently conflated with REST; protobuf is conflated with gRPC
 - SDK generation fit modular binary shape; gRPC or HTTP within service mesh; bits within platform
 - OpenAPI implementation looked different in each language; protobuf did this for us
-- 
 -->
 
 ---
@@ -309,7 +314,11 @@ exists". Correct the mechanism before this goes in front of anyone.
 <!-- goal: argue that uniformity serves the maintainer and idiom serves the customer -->
 # Uniformity is a maintainer's convenience
 
-> You are the only one who sees all three.
+<slide-callout tone="note">
+
+You are the only one who sees all three.
+
+</slide-callout>
 
 - Your customer sees exactly one SDK. Consistency with the others is **invisible** to them; inconsistency with their language is **glaring**.
 - Idiomatic SDKs cost more to build
@@ -502,7 +511,11 @@ library, its tests, and an `AGENTS.md` saying what it is for and when it
 applies. When upstream moves, a patch skill applies it again — **an agent reads
 the description and does the work**, with the tests as the floor.
 
-> Why an agent and not a library?
+<slide-callout tone="note">
+
+Why an agent and not a library?
+
+</slide-callout>
 
 Because you do not always get to apply the right architecture at the moment you
 need it, least of all around code generation. This was an honest stop-gap that

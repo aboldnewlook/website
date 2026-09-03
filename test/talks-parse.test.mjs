@@ -1105,3 +1105,100 @@ test("every deck in decks/ parses and has unique positions", () => {
     assert.equal(new Set(slides.map((s) => s.pos.join(","))).size, slides.length, slug);
   }
 });
+
+// --- slide components ---------------------------------------------------------
+//
+// Components are a closed tag vocabulary expanded in parse.js before
+// renderMarkdown sees the body. markdown.js still escapes raw HTML; these
+// tests pin that the two facts coexist.
+
+const withBody = (body) => `---\ntitle: C\n---\n\n<!-- pos: 0,0 -->\n\n${body}\n`;
+
+test("slide-stats wraps the table and carries columns and align", () => {
+  const { slides } = parseDeck(
+    withBody("<slide-stats>\n\n| 1 | 2 |\n|---|---|\n| a | b |\n\n</slide-stats>"),
+  );
+  const html = slides[0].html;
+  assert.match(html, /<div class="slide-stats" data-columns="2" data-align="center">/);
+  // The inner markdown is still rendered as a real table.
+  assert.match(html, /<table><thead><tr><th>1<\/th><th>2<\/th>/);
+  assert.match(html, /<tbody><tr><td>a<\/td><td>b<\/td>/);
+});
+
+test("slide-stats columns attribute overrides the counted table width", () => {
+  const { slides } = parseDeck(
+    withBody('<slide-stats columns="3" align="start">\n\n| 1 |\n|---|\n| a |\n\n</slide-stats>'),
+  );
+  assert.match(slides[0].html, /data-columns="3" data-align="start"/);
+});
+
+test("slide-callout renders source as an attribution, not a list item", () => {
+  const { slides } = parseDeck(
+    withBody('<slide-callout tone="quote" source="API maxim">\n\nNo is temporary.\n\n</slide-callout>'),
+  );
+  const html = slides[0].html;
+  assert.match(html, /<div class="slide-callout" data-tone="quote">/);
+  assert.match(html, /<p>No is temporary\.<\/p>/);
+  assert.match(html, /<p class="callout-source">API maxim<\/p>/);
+  assert.doesNotMatch(html, /<ul>/);
+});
+
+test("component content keeps full markdown, and prose around it is untouched", () => {
+  const { slides } = parseDeck(
+    withBody("Before **bold**.\n\n<slide-callout>\n\nInner `code` and *em*.\n\n</slide-callout>\n\nAfter."),
+  );
+  const html = slides[0].html;
+  assert.match(html, /<p>Before <strong>bold<\/strong>\.<\/p>/);
+  assert.match(html, /<code>code<\/code>/);
+  assert.match(html, /<em>em<\/em>/);
+  assert.match(html, /<p>After\.<\/p>/);
+});
+
+test("attribute values are escaped, and angle brackets never reach one", () => {
+  // & is escaped on the way out...
+  const { slides } = parseDeck(
+    withBody('<slide-callout source="Ryan & co">\n\nhi\n\n</slide-callout>'),
+  );
+  assert.match(slides[0].html, /<p class="callout-source">Ryan &amp; co<\/p>/);
+
+  // ...and < or > in a value is rejected at the grammar, not escaped after the
+  // fact: the attribute pattern is [^"<>]*, so such a tag never parses as a
+  // component at all and the slide- typo guard rejects it.
+  assert.throws(
+    () => parseDeck(withBody('<slide-callout source="a <x> b">\n\nhi\n\n</slide-callout>')),
+    /unrecognised component tag/,
+  );
+});
+
+test("raw HTML that is not a component still escapes", () => {
+  const { slides } = parseDeck(withBody("<div>nope</div>\n\n<my-element>also</my-element>"));
+  const html = slides[0].html;
+  assert.doesNotMatch(html, /<div>nope<\/div>/);
+  assert.match(html, /&lt;div&gt;/);
+  assert.match(html, /&lt;my-element&gt;/);
+});
+
+test("component errors are thrown, not silently rendered", () => {
+  const cases = [
+    ["<slide-stats>\n\nx\n", /never closed/],
+    ["<slide-stat>\n\nx\n\n</slide-stat>", /unknown component/],
+    ['<slide-stats bogus="1">\n\nx\n\n</slide-stats>', /does not take "bogus"/],
+    ['<slide-callout tone="shouty">\n\nx\n\n</slide-callout>', /tone must be/],
+    ['<slide-stats columns="9">\n\nx\n\n</slide-stats>', /1-6 columns/],
+    ["</slide-stats>", /no matching opening tag/],
+    [
+      "<slide-stats>\n\n<slide-callout>\n\nx\n\n</slide-callout>\n\n</slide-stats>",
+      /do not nest/,
+    ],
+  ];
+  for (const [body, re] of cases) {
+    assert.throws(() => parseDeck(withBody(body)), re, `expected throw for: ${body.slice(0, 30)}`);
+  }
+});
+
+test("the real deck's components parse", () => {
+  const { slides } = parseDeck(deck("generation-gave-us-the-surface"));
+  const all = slides.map((s) => s.html).join("");
+  assert.match(all, /<div class="slide-stats" data-columns="4"/);
+  assert.match(all, /<p class="callout-source">API maxim<\/p>/);
+});

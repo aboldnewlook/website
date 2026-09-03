@@ -15,7 +15,8 @@
 //   6. strip any remaining complete <!-- ... --> block from the body — an
 //      unrecognised or mid-body comment is never meant for the audience and
 //      must never reach the rendered slide, escaped or not
-//   7. hand the remaining body to the existing renderMarkdown()
+//   7. expand slide components (<slide-stats>, <slide-callout>) and hand
+//      every other segment to the existing renderMarkdown()
 //
 // Steps 2 and 3 must precede step 5, and this is load-bearing rather than
 // stylistic: markdown.js `HR` matches `---` and would emit an <hr>, and its
@@ -30,6 +31,7 @@
 // .claude/skills/writing-slidecard-talks/validate.mjs.
 
 import { renderMarkdown } from "../blog/markdown.js";
+import { escapeHtml } from "../format.js";
 
 const DECK_KEYS = new Set(["title", "date", "venue", "summary", "fonts"]);
 const SLIDE_KEYS = new Set(["pos", "kicker", "id", "covers", "goal"]);
@@ -379,7 +381,7 @@ function splitSlides(text, talk) {
       pos,
       kicker: fields.kicker ?? null,
       id: fields.id ?? null,
-      html: renderMarkdown(stripComments(body)),
+      html: renderBody(stripComments(body), label),
       notes: rawNotes === null ? null : renderMarkdown(rawNotes),
       covers,
       goal: fields.goal ?? null,
@@ -444,6 +446,160 @@ function findCommentEnd(lines, from) {
 // marker or was deliberately mid-body deck prep — so it is removed rather
 // than rendered, escaped or not (design requirement: no HTML comment may
 // ever reach the rendered slide).
+
+// --- slide components ---------------------------------------------------
+//
+// A deck author has no raw HTML: markdown.js escapes it, deliberately, and
+// that file is shared with the blog so its posture is not ours to loosen.
+// Components are therefore a small closed vocabulary parsed HERE, before
+// renderMarkdown ever sees the body, and rendered as real elements.
+//
+// This is not "allow HTML". Only the tag names in COMPONENTS exist, only
+// their listed attributes are accepted, values are escaped, and anything
+// else falls through to markdown.js and is escaped exactly as it is today.
+//
+// A component WRAPS markdown rather than replacing it, so the deck still
+// reads as a document on GitHub (the table renders; the unknown tags render
+// as nothing) and the inner content keeps every markdown feature.
+//
+// Segmenting the body and rendering each segment separately is equivalent to
+// rendering it whole because a component tag must sit alone on its line, so
+// no markdown block ever spans the boundary. validate.mjs enforces that.
+
+const COMPONENTS = {
+  "slide-stats": new Set(["columns", "align"]),
+  "slide-callout": new Set(["tone", "source"]),
+};
+
+const COMPONENT_OPEN = /^<(slide-[a-z]+)((?:\s+[a-z]+="[^"<>]*")*)\s*>$/;
+const COMPONENT_CLOSE = /^<\/(slide-[a-z]+)>$/;
+const ATTR = /([a-z]+)="([^"<>]*)"/g;
+const SLIDE_TAG_ISH = /^<\/?slide-[a-z0-9-]*/;
+
+/**
+ * Render a slide body, expanding component tags and handing everything else
+ * to renderMarkdown untouched.
+ * @param {string} body
+ * @param {string} label slide label, for error messages
+ */
+function renderBody(body, label) {
+  const out = [];
+  const plain = [];
+  let open = null;
+  let inner = [];
+
+  const flushPlain = () => {
+    const md = plain.join("\n").trim();
+    plain.length = 0;
+    if (md) out.push(renderMarkdown(md));
+  };
+
+  for (const line of body.split("\n")) {
+    const t = line.trim();
+    const o = COMPONENT_OPEN.exec(t);
+    const c = COMPONENT_CLOSE.exec(t);
+
+    if (o) {
+      if (open) {
+        throw new Error(`${label}: <${o[1]}> nested inside <${open.name}>; components do not nest`);
+      }
+      if (!COMPONENTS[o[1]]) {
+        throw new Error(`${label}: unknown component <${o[1]}>`);
+      }
+      flushPlain();
+      open = { name: o[1], attrs: parseAttrs(o[1], o[2], label) };
+      inner = [];
+      continue;
+    }
+
+    if (c) {
+      if (!open) {
+        throw new Error(`${label}: closing </${c[1]}> with no matching opening tag`);
+      }
+      if (c[1] !== open.name) {
+        throw new Error(`${label}: <${open.name}> closed by </${c[1]}>`);
+      }
+      out.push(renderComponent(open, inner.join("\n"), label));
+      open = null;
+      continue;
+    }
+
+    // A lone slide-* tag that did not match the open/close grammar is a typo
+    // for a component, not prose. Escaping it silently would put
+    // "<slide-stat>" on the projector. Only the slide- namespace is guarded:
+    // a talk about web components may legitimately write <my-element>, and
+    // that must still fall through to markdown.js and escape.
+    if (SLIDE_TAG_ISH.test(t)) {
+      throw new Error(`${label}: unrecognised component tag ${t}`);
+    }
+
+    (open ? inner : plain).push(line);
+  }
+
+  if (open) {
+    throw new Error(`${label}: <${open.name}> is never closed`);
+  }
+  flushPlain();
+  return out.join("\n");
+}
+
+function parseAttrs(name, raw, label) {
+  const allowed = COMPONENTS[name];
+  const attrs = {};
+  for (const [, k, v] of (raw || "").matchAll(ATTR)) {
+    if (!allowed.has(k)) {
+      throw new Error(
+        `${label}: <${name}> does not take "${k}" (allowed: ${[...allowed].join(", ")})`,
+      );
+    }
+    attrs[k] = v;
+  }
+  return attrs;
+}
+
+/** Count the cells in the first markdown table row of a component body. */
+function tableColumns(md) {
+  for (const line of md.split("\n")) {
+    const t = line.trim();
+    if (t.includes("|")) {
+      return t.replace(/^\|/, "").replace(/\|$/, "").split("|").length;
+    }
+  }
+  return 0;
+}
+
+function renderComponent(open, md, label) {
+  const { name, attrs } = open;
+  const inner = renderMarkdown(md.trim());
+
+  if (name === "slide-stats") {
+    const cols = attrs.columns ? Number(attrs.columns) : tableColumns(md);
+    if (!Number.isInteger(cols) || cols < 1 || cols > 6) {
+      throw new Error(
+        `${label}: <slide-stats> needs 1-6 columns, got ${attrs.columns ?? cols}`,
+      );
+    }
+    const align = attrs.align ?? "center";
+    if (align !== "center" && align !== "start") {
+      throw new Error(`${label}: <slide-stats> align must be center or start`);
+    }
+    return `<div class="slide-stats" data-columns="${cols}" data-align="${escapeHtml(align)}">${inner}</div>`;
+  }
+
+  if (name === "slide-callout") {
+    const tone = attrs.tone ?? "note";
+    if (!["note", "warn", "quote"].includes(tone)) {
+      throw new Error(`${label}: <slide-callout> tone must be note, warn or quote`);
+    }
+    const source = attrs.source
+      ? `<p class="callout-source">${escapeHtml(attrs.source)}</p>`
+      : "";
+    return `<div class="slide-callout" data-tone="${escapeHtml(tone)}">${inner}${source}</div>`;
+  }
+
+  throw new Error(`${label}: unhandled component <${name}>`);
+}
+
 function stripComments(body) {
   return body.replace(ANY_COMMENT, "").trim();
 }

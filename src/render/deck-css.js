@@ -302,6 +302,103 @@ export const DECK_CSS = `
 }
 
 /* ------------------------------------------------------------------ *
+ * Slide components. Emitted by src/talks/parse.js from a closed tag
+ * vocabulary (<slide-stats>, <slide-callout>), never by the author writing
+ * HTML -- markdown.js escapes raw HTML and that posture is shared with the
+ * blog. The tag carries attributes, which is what a purely structural
+ * :has() selector could not do.
+ *
+ * Deliberately NOT scoped to .deck--player. Code compare is player-only
+ * because a 3-up code grid cannot work in a 48rem reading column; a stat row
+ * and a callout both read well in a document, so they style in both modes.
+ * ------------------------------------------------------------------ */
+
+/* Stat row. The inner markdown stays a real table -- accessible, and it
+   still renders on GitHub -- and the grid is laid over it: thead/tbody/tr
+   go display:contents so the th and td cells become grid items directly.
+   Source order puts every th before every td, so with an N-column grid the
+   figures land on row 1 and their labels on row 2, each under its own
+   figure. That is why the figure is authored as the header row. */
+.slide-stats { margin: 1.6em 0; }
+.slide-stats table {
+  display: grid;
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 1em;
+  margin: 0;
+  column-gap: 1.2em;
+  row-gap: .15em;
+}
+.slide-stats thead,
+.slide-stats tbody,
+.slide-stats tr { display: contents; }
+.slide-stats th,
+.slide-stats td {
+  border: 0;
+  padding: 0;
+  text-align: center;
+  min-inline-size: 0;
+}
+.slide-stats[data-align="start"] th,
+.slide-stats[data-align="start"] td { text-align: start; }
+/* The figure. Inherits --serif like the rest of the card; it deliberately
+   does NOT try to follow the h2, because a deck themes its heading face by
+   setting .deck h2 directly and there is no token to read it back from. A
+   deck that wants its display face on the numerals sets .slide-stats th
+   in its own theme block. */
+.slide-stats th {
+  font-size: 2.4em;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -.02em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.slide-stats td {
+  font-size: .82em;
+  line-height: 1.25;
+  color: var(--muted);
+  text-wrap: balance;
+}
+.slide-stats[data-columns="1"] table { grid-template-columns: minmax(0, 1fr); }
+.slide-stats[data-columns="2"] table { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.slide-stats[data-columns="3"] table { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.slide-stats[data-columns="4"] table { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.slide-stats[data-columns="5"] table { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.slide-stats[data-columns="6"] table { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+/* Callout. tone is the variant axis; source is an optional attribution the
+   author sets as an attribute, so it can never be mistaken for a list item
+   the way a "> - Someone" line was. */
+.slide-callout {
+  margin: 1.4em 0;
+  padding: .9em 1.2em;
+  border-inline-start: .2em solid var(--accent);
+  border-radius: 0 .15em .15em 0;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.slide-callout > :first-child { margin-block-start: 0; }
+.slide-callout > :last-child { margin-block-end: 0; }
+.slide-callout[data-tone="quote"] {
+  font-style: italic;
+  font-size: 1.15em;
+}
+.slide-callout[data-tone="warn"] {
+  border-inline-start-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 9%, transparent);
+}
+.slide-callout .callout-source {
+  margin-block-start: .5em;
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: .62em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.slide-callout .callout-source::before { content: "— "; }
+
+/* ------------------------------------------------------------------ *
  * Player mode. Everything below is scoped to the class the script adds.
  * ------------------------------------------------------------------ */
 .deck-presenting, .deck-presenting body {
