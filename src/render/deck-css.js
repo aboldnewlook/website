@@ -383,6 +383,78 @@ export const DECK_CSS = `
 .slide-stats[data-columns="5"] table { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .slide-stats[data-columns="6"] table { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 
+/* Code compare, as an explicit component. The legacy :has(> pre:nth-of-type)
+   path below still serves decks that just put three fences on a slide;
+   wrapping them in <slide-compare> makes the pres stop being direct children
+   of .slide-body, so that path switches itself off and this one takes over.
+   The tag is what lets a deck CHOOSE a layout, which structural detection
+   could never express.
+
+   Sizes are measured on a 1400px card (1282px content box):
+     columns  3 tracks of ~403px -- the longest line must be <=34 chars
+     mosaic   2 tracks of ~597px -- fits ~54 chars, so nothing wraps
+     stack    1 track of 1282px, but height-bound once three samples stack
+
+   mosaic and stack do NOT wrap, so they need no hanging indent -- the
+   sample's own indentation survives intact, which on a compare slide is the
+   whole point. Only the 3-up columns layout still wraps. */
+/* Spacing here is tighter than a prose slide's on purpose. At the default
+   padding and label margins the mosaic overflowed the card by 37px and
+   .slide-body's overflow:hidden silently ATE the last line of the third
+   sample -- the worst kind of failure, because the slide still looks fine.
+   Reclaiming that space is what buys 17px instead of the 15px the loose
+   spacing forced. */
+.slide-compare { margin: .8em 0 0; }
+.slide-compare > p { margin: 0 0 .2em; }
+.slide-compare > pre {
+  margin: 0;
+  padding: .55em .8em;
+  align-self: start;
+  min-inline-size: 0;
+  max-inline-size: none;
+}
+
+.deck--player .slide-compare[data-layout="mosaic"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.8em;
+  align-content: start;
+}
+/* Sample 1 takes the whole left column; 2 and 3 stack down the right, so
+   reading order stays 1, 2, 3 for a viewer scanning down then across. */
+.deck--player .slide-compare[data-layout="mosaic"] > p:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.deck--player .slide-compare[data-layout="mosaic"] > pre:nth-of-type(1) { grid-column: 1; grid-row: 2 / 5; }
+.deck--player .slide-compare[data-layout="mosaic"] > p:nth-of-type(2) { grid-column: 2; grid-row: 1; }
+.deck--player .slide-compare[data-layout="mosaic"] > pre:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+.deck--player .slide-compare[data-layout="mosaic"] > p:nth-of-type(3) { grid-column: 2; grid-row: 3; margin-block-start: .45em; }
+.deck--player .slide-compare[data-layout="mosaic"] > pre:nth-of-type(3) { grid-column: 2; grid-row: 4; }
+.deck--player .slide-compare[data-layout="mosaic"] > pre { font-size: .68em; }
+
+.deck--player .slide-compare[data-layout="stack"] > pre { font-size: .6em; }
+
+.deck--player .slide-compare[data-layout="columns"] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 1.4em;
+  align-content: start;
+}
+.deck--player .slide-compare[data-layout="columns"] > p:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+.deck--player .slide-compare[data-layout="columns"] > pre:nth-of-type(1) { grid-column: 1; grid-row: 2; }
+.deck--player .slide-compare[data-layout="columns"] > p:nth-of-type(2) { grid-column: 2; grid-row: 1; }
+.deck--player .slide-compare[data-layout="columns"] > pre:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+.deck--player .slide-compare[data-layout="columns"] > p:nth-of-type(3) { grid-column: 3; grid-row: 1; }
+.deck--player .slide-compare[data-layout="columns"] > pre:nth-of-type(3) { grid-column: 3; grid-row: 2; }
+.deck--player .slide-compare[data-layout="columns"] > pre {
+  font-size: .72em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.deck--player .slide-compare[data-layout="columns"] > pre code {
+  display: block;
+  padding-inline-start: 2.2ch;
+  text-indent: -2.2ch;
+}
+
 /* Callout. tone is the variant axis; source is an optional attribution the
    author sets as an attribute, so it can never be mistaken for a list item
    the way a "> - Someone" line was. */

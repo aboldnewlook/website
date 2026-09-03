@@ -277,11 +277,13 @@ arrives discoverable and typed, as a compile error, or deprecation notice.
 | **Runs in theirs** | No telemetry, no upgrade control, no idea who is still on the old path. |
 | **So** | Enforce it at build time — **Buf** breaking-change detection against a baseline, failing the build. |
 
-On-prem and air-gapped makes this worse. It is the same problem for anything that
-ships into a customer's environment and stops reporting back.
+On-prem and air-gapped exacerbates this giving no observability path.
 
-This is where *no is temporary, yes is forever* comes due: every surface we
-exposed is a yes we cannot retract, and nothing operational can take it back.
+Every surface exposed is a yes we cannot retract. (*no is temporary, yes is forever*)
+
+<!-- notes:
+- buf can detect breaking changes
+-->
 
 ---
 <!-- down -->
@@ -290,22 +292,15 @@ exposed is a yes we cannot retract, and nothing operational can take it back.
 <!-- goal: show that one contract also yields validation, so bad input dies in the caller rather than on the wire -->
 # The contract validates too
 
-Constraints declared once in the proto, generated into every SDK — so the
-same rule is enforced in Go, Java and JavaScript without three
-implementations of it.
+Constraints declared once in the proto, generated into every SDK.
 
+- **Same validation code** on server and in each SDK.
 - Bad input fails **in the caller**, before a request exists.
-- On-prem that matters twice over: **a request never sent is one we never
-  had to observe** — and observation is the thing we do not have.
-- One more thing that stops being a discipline problem and starts being a
-  generated artifact.
+- Stresses good unit tests. **A request never sent can't be observed** reflecting our customer environments.
+- Reduced surface area; fewer discipline problems and more generated artifact.
 
-<!-- REVIEW · CONFIRM THE MECHANISM
-Written from the outline item ("client-side validation generated across
-SDKs") plus the structural argument. Your prep mentioned protovalidate as
-"a separate tool, runtime validation" — if that is what this is, the slide
-should say so by name, and "runtime" may contradict "before a request
-exists". Correct the mechanism before this goes in front of anyone.
+<!-- notes:
+The contract validation is really beneficial because we can ensure that the validation happens prior to it making it into the hitting the server. We also have validation on server and it's actually the same validation. 
 -->
 
 ---
@@ -321,8 +316,13 @@ You are the only one who sees all three.
 </slide-callout>
 
 - Your customer sees exactly one SDK. Consistency with the others is **invisible** to them; inconsistency with their language is **glaring**.
-- Idiomatic SDKs cost more to build
+- Idiomatic SDKs cost more to build.
 - They pay back in **support tickets not filed, time-to-first-deploy, and customers who come back**
+
+<!-- notes:
+I just want to say that this is a really important slide to me. It is something I've seen a lot, which is developers building SDKs tend to build for themselves, not for customers. And that is a real problem. That's not product engineering. That is... That's not customer service. 
+-->
+
 ---
 <!-- down -->
 <!-- kicker: 04 — Idioms -->
@@ -330,11 +330,15 @@ You are the only one who sees all three.
 <!-- goal: show the same encrypt in three idiomatic shapes at once, so the comparison is seen rather than remembered -->
 # The same encrypt, three times
 
+<slide-compare layout="mosaic">
+
 **JavaScript**
 
 ```ts
+const interceptors = [authTokenInterceptor(getToken)];
+
 const client = new OpenTDF({
-  interceptors: [authTokenInterceptor(getToken)],
+  interceptors,
   platformUrl,
 });
 
@@ -369,8 +373,9 @@ var cfg = Config.newTDFConfig(
 sdk.createTDF(in, out, cfg);
 ```
 
+</slide-compare>
+
 <!-- notes:
-- don't read the code — point at the shapes
 - JS: composition is native, build the object, pass it at the call site
 - Go: variadic options, extend before the call or inside it, developer chooses
 - Java: verbose by nature, wants a builder, and that expectation is legitimate
@@ -385,14 +390,22 @@ sdk.createTDF(in, out, cfg);
 # Language idioms diverge. Unix idioms converged.
 
 - The tension: SDKs must be idiomatic, therefore **non-uniform**, therefore hard to compare mechanically.
-- A CLI is not idiom-free. Flags versus positionals, `-f` versus `--flag`, piping, uniform output — **Unix settled all of it**, and settled it the same way on every platform.
-- What is left genuinely arbitrary is small: noun→verb or verb→noun. Pick one, and every language can hit it.
-- So the matrix becomes a matrix over **processes**, not language bindings. The harness needs a shell, not knowledge of Java versus Go.
-- Every pair tested — encrypt in Java, decrypt in Go — across formats, with **zero language-specific test code**
+- A CLI is not idiom-free. **Unix settled all of it**.
+- What is left is an opinion: noun→verb or verb→noun.
+- BDD encoded as a matrix of shims with shared interfaces run with BAT.
 
-***
+```sh
+otdfctl --list policy attributes list | jq 
+echo "hello world" | otdfctl encrypt | otdftcl decrypt | grep "hello world"
+```
 
-Java, Go, JavaScript. `otdfctl` is a real product CLI; the others are deliberately minimal shims. One product, two test harnesses sharing a shape.
+<!-- notes:
+- JS: composition is native, build the object, pass it at the call site
+- Go: variadic options, extend before the call or inside it, developer chooses
+- Java: verbose by nature, wants a builder, and that expectation is legitimate
+- identical semantics, three right answers — a uniform API would have been
+  wrong in at least two of them
+-->
 ---
 <!-- kicker: 04 — Idioms -->
 <!-- covers: wrap-the-generated-layer,ai-does-the-wrapping -->

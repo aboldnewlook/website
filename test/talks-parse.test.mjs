@@ -1250,3 +1250,25 @@ test("the real deck's three-language compare slide is highlighted", () => {
   assert.match(s.html, /language-java/);
   assert.match(s.html, /tok-keyword/);
 });
+
+test("slide-compare carries a layout and defaults to columns", () => {
+  const md = "<slide-compare>\n\n**A**\n\n```ts\nconst a = 1\n```\n\n</slide-compare>";
+  assert.match(parseDeck(withBody(md)).slides[0].html, /<div class="slide-compare" data-layout="columns">/);
+  assert.match(
+    parseDeck(withBody(md.replace("<slide-compare>", '<slide-compare layout="mosaic">'))).slides[0].html,
+    /data-layout="mosaic"/,
+  );
+  assert.throws(
+    () => parseDeck(withBody(md.replace("<slide-compare>", '<slide-compare layout="grid">'))),
+    /layout must be columns, mosaic or stack/,
+  );
+});
+
+test("the real compare slide is a mosaic and keeps all three samples", () => {
+  const { slides } = parseDeck(deck("generation-gave-us-the-surface"));
+  const s = slides.find((x) => /three times/.test(x.html));
+  assert.match(s.html, /<div class="slide-compare" data-layout="mosaic">/);
+  assert.equal((s.html.match(/<pre>/g) ?? []).length, 3);
+  // the composition line that motivated the mosaic
+  assert.match(s.html, /const<\/span> interceptors = \[/);
+});

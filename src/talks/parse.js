@@ -470,6 +470,7 @@ function findCommentEnd(lines, from) {
 const COMPONENTS = {
   "slide-stats": new Set(["columns", "align"]),
   "slide-callout": new Set(["tone", "source"]),
+  "slide-compare": new Set(["layout"]),
 };
 
 const COMPONENT_OPEN = /^<(slide-[a-z]+)((?:\s+[a-z]+="[^"<>]*")*)\s*>$/;
@@ -585,6 +586,14 @@ function renderComponent(open, md, label) {
       throw new Error(`${label}: <slide-stats> align must be center or start`);
     }
     return `<div class="slide-stats" data-columns="${cols}" data-align="${escapeHtml(align)}">${inner}</div>`;
+  }
+
+  if (name === "slide-compare") {
+    const layout = attrs.layout ?? "columns";
+    if (!["columns", "mosaic", "stack"].includes(layout)) {
+      throw new Error(`${label}: <slide-compare> layout must be columns, mosaic or stack`);
+    }
+    return `<div class="slide-compare" data-layout="${escapeHtml(layout)}">${inner}</div>`;
   }
 
   if (name === "slide-callout") {
