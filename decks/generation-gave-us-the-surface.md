@@ -378,8 +378,10 @@ sdk.createTDF(in, out, cfg);
 # one shape, asserted: filter the field, diff against what we expect
 otdfctl policy attributes list --json | jq -r '.[].fqn' | diff -u expected/attrs.txt -
 
-# the matrix: encrypt with one shim, decrypt with another
-otdfctl encrypt < fixtures/hello.txt | otdfctl decrypt | diff -u fixtures/hello.txt -
+# one row of the matrix: encrypt once, decrypt in every implementation
+otdfctl encrypt < fixtures/hello.txt | otdfctl   decrypt | diff -u fixtures/hello.txt -
+otdfctl encrypt < fixtures/hello.txt | otdf-java decrypt | diff -u fixtures/hello.txt -
+otdfctl encrypt < fixtures/hello.txt | otdf-ts   decrypt | diff -u fixtures/hello.txt -
 ```
 
 <!-- notes:
@@ -389,7 +391,7 @@ otdfctl encrypt < fixtures/hello.txt | otdfctl decrypt | diff -u fixtures/hello.
 - and we dog-food it - the CLI runs on the SDK
 - the assertion is diff, not grep: grep passes on a superset
 - diff is silent and exits 0 on a match, so it composes in a test runner
-- $enc / $dec iterate the shims - that loop IS the matrix
+- this is the Go-encrypt row; the full matrix runs every shim on both sides
 - the fixture is read on both ends, so in and out have one source of truth
 -->
 ---
