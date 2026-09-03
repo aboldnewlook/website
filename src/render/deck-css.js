@@ -857,6 +857,10 @@ export const DECK_CSS = `
  * fallback, deliberately dark since a presenter view is backstage.
  * ------------------------------------------------------------------ */
 body.presenter {
+  /* Pre-JS fallback for the SLIDE previews. deck.js overwrites these six as
+     an inline style on <body> once it reads the audience page's real values,
+     so anything using them is themeable by the deck -- by design, because a
+     preview should look like the slide. */
   --card: #1c1d22;
   --ink: #eceef2;
   --muted: #9096a3;
@@ -864,10 +868,22 @@ body.presenter {
   --rule: #33353d;
   --deck-bg: #101015;
 
+  /* The chrome's own palette, which the bridge must NOT be able to reach.
+     It used to share the six above, and an inline style beats a class rule,
+     so a deck that themed --ink for a dark card while leaving --rule and
+     --deck-bg at the light defaults painted the notes pane #ECE7DC on
+     #f4f4f5 -- a contrast ratio of about 1.05:1, i.e. invisible. The
+     presenter is backstage: it stays dark whatever the deck looks like. */
+  --chrome-bg: #33353d;
+  --chrome-panel: #101015;
+  --chrome-ink: #eceef2;
+  --chrome-muted: #9096a3;
+  --chrome-accent: #6cd4ff;
+
   margin: 0;
   min-block-size: 100dvh;
-  background: var(--rule);
-  color: var(--ink);
+  background: var(--chrome-bg);
+  color: var(--chrome-ink);
   font-family: var(--serif);
 }
 
@@ -906,7 +922,7 @@ body.presenter {
      text when a slide's notes run long enough to need the scrollbar. */
   padding-block-end: calc(clamp(1.75rem, 3vw, 3.25rem) + 3.4rem);
   overflow: auto;
-  background: var(--deck-bg);
+  background: var(--chrome-panel);
   font-size: clamp(1.2rem, 1rem + 1.1vw, 2rem);
   line-height: 1.55;
 }
@@ -915,11 +931,16 @@ body.presenter {
 .presenter-notes > :last-child { margin-block-end: 0; }
 .presenter-notes h2, .presenter-notes h3 { line-height: 1.2; text-wrap: balance; }
 .presenter-notes ul, .presenter-notes ol { padding-inline-start: 1.2em; }
-.presenter-notes a { color: var(--accent); }
+.presenter-notes a { color: var(--chrome-accent); }
 
 .presenter-slide {
   padding: 1rem 1rem .5rem;
-  background: var(--deck-bg);
+  /* Chrome, not --deck-bg. That token is NOT part of the documented theme
+     surface (--card/--ink/--accent/--serif/--mono are), and a deck sets its
+     real backdrop on .deck-backdrop instead -- so --deck-bg is usually just
+     the light default and previews nothing, which against the dark chrome
+     read as a bright slab around each card. */
+  background: var(--chrome-panel);
   overflow: hidden;
 }
 .presenter-slide--current { grid-column: 2; grid-row: 1; align-self: end; }
@@ -964,7 +985,7 @@ body.presenter {
   font-size: .72rem;
   letter-spacing: .16em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--chrome-muted);
 }
 
 .presenter-position, .presenter-timer {
@@ -976,11 +997,11 @@ body.presenter {
   gap: .6em;
   padding: .4em .8em;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--deck-bg) 75%, transparent);
+  background: color-mix(in srgb, var(--chrome-panel) 75%, transparent);
   font-family: var(--mono);
   font-size: .95rem;
   letter-spacing: .04em;
-  color: var(--ink);
+  color: var(--chrome-ink);
 }
 .presenter-position { inset-inline-start: .9rem; }
 .presenter-pos-coord { opacity: .6; }
@@ -993,15 +1014,15 @@ body.presenter {
   letter-spacing: .1em;
   text-transform: uppercase;
   padding: .3em .65em;
-  border: 1px solid var(--muted);
+  border: 1px solid var(--chrome-muted);
   border-radius: 3px;
   background: transparent;
-  color: var(--ink);
+  color: var(--chrome-ink);
   cursor: pointer;
 }
 .presenter-timer button:hover, .presenter-timer button:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--chrome-accent);
+  color: var(--chrome-accent);
 }
 
 /* Prev/Next (owner request: presenter needs its own nav, not just the deck
@@ -1028,16 +1049,16 @@ body.presenter {
   letter-spacing: .06em;
   text-transform: uppercase;
   padding: .5em 1em;
-  border: 1px solid var(--muted);
+  border: 1px solid var(--chrome-muted);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--deck-bg) 82%, transparent);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--chrome-panel) 82%, transparent);
+  color: var(--chrome-ink);
   cursor: pointer;
 }
 .presenter-nav-btn:hover:not(:disabled),
 .presenter-nav-btn:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--chrome-accent);
+  color: var(--chrome-accent);
 }
 .presenter-nav-btn:disabled {
   opacity: .35;
@@ -1052,7 +1073,7 @@ body.presenter {
   font-family: var(--mono);
   font-size: .95rem;
   letter-spacing: .04em;
-  color: var(--accent);
+  color: var(--chrome-accent);
   text-align: center;
 }
 
