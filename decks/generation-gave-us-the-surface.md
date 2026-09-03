@@ -379,7 +379,7 @@ sdk.createTDF(in, out, cfg);
 otdfctl policy attributes list --json | jq -r '.[].fqn' | diff -u expected/attrs.txt -
 
 # the matrix: encrypt with one shim, decrypt with another
-echo "hello world" | "$enc" encrypt | "$dec" decrypt | diff -u <(echo "hello world") -
+echo "hello world" | "$enc" encrypt | "$dec" decrypt | diff -u fixtures/hello.txt -
 ```
 
 <!-- notes:
@@ -388,6 +388,7 @@ echo "hello world" | "$enc" encrypt | "$dec" decrypt | diff -u <(echo "hello wor
 - so it is the one surface where all three compare directly
 - and we dog-food it - the CLI runs on the SDK
 - the assertion is diff, not grep: grep passes on a superset
+- diff is silent and exits 0 on a match, so it composes in a test runner
 - $enc / $dec iterate the shims - that loop IS the matrix
 -->
 ---
