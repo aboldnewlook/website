@@ -186,7 +186,7 @@ export const DECK_CSS = `
 .slide-body > :last-child { margin-block-end: 0; }
 
 .slide-body h2 {
-  margin: 0 0 .5em;
+  margin: 0 auto .5em;
   max-inline-size: var(--measure-h2);
   font-family: var(--serif);
   font-size: var(--h2);
@@ -214,19 +214,35 @@ export const DECK_CSS = `
 .slide-body ul, .slide-body ol { margin: 0 0 .75em; padding-inline-start: 1.3em; }
 /* Without this the body runs the full width of a very wide card, which is a
    100-character line. Tables, code and figures are exempt: they are meant to
-   span. */
+   span.
+
+   margin-inline:auto centres the capped column instead of letting it hug
+   the left edge, which left the whole body stacked against one side with a
+   dead gutter down the right. Text stays left-aligned inside the box; only
+   the box moves. In reading mode this is inert -- --measure is "none"
+   there, so the block is already full width and auto margins compute to 0 --
+   which keeps the change player-only without needing a .deck--player
+   scope (D2).
+
+   NOTE: no backticks below line 30. The whole stylesheet is a JS template
+   literal, so a single backtick in a CSS comment ends the string and the
+   module stops parsing. The // comments at the top of the file are outside
+   it and may quote freely. */
 .slide-body > p,
 .slide-body > ul,
 .slide-body > ol,
 .slide-body > blockquote,
 .slide-body > h3,
-.slide-body > h4 { max-inline-size: var(--measure); }
+.slide-body > h4 { max-inline-size: var(--measure); margin-inline: auto; }
 .slide-body li { margin-block-end: .35em; }
 .slide-body li::marker { color: var(--accent); }
 .slide-body a { color: var(--accent); text-underline-offset: .18em; }
 .slide-body strong { font-weight: 700; }
 .slide-body blockquote {
-  margin: 0 0 .75em;
+  /* auto inline, not 0: this rule sits after the --measure rule above, at
+     equal specificity, so its shorthand would otherwise re-pin the centred
+     block back to the left. */
+  margin: 0 auto .75em;
   padding-inline-start: 1em;
   border-inline-start: .16em solid var(--accent);
   color: var(--muted);
