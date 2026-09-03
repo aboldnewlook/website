@@ -379,7 +379,7 @@ sdk.createTDF(in, out, cfg);
 otdfctl policy attributes list --json | jq -r '.[].fqn' | diff -u expected/attrs.txt -
 
 # the matrix: encrypt with one shim, decrypt with another
-echo "hello world" | "$enc" encrypt | "$dec" decrypt | diff -u fixtures/hello.txt -
+otdfctl encrypt < fixtures/hello.txt | otdfctl decrypt | diff -u fixtures/hello.txt -
 ```
 
 <!-- notes:
@@ -390,6 +390,7 @@ echo "hello world" | "$enc" encrypt | "$dec" decrypt | diff -u fixtures/hello.tx
 - the assertion is diff, not grep: grep passes on a superset
 - diff is silent and exits 0 on a match, so it composes in a test runner
 - $enc / $dec iterate the shims - that loop IS the matrix
+- the fixture is read on both ends, so in and out have one source of truth
 -->
 ---
 <!-- down -->
